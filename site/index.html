@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Simmer: macOS battery manager</title>
-  <meta name="description" content="Simmer is a free, open-source macOS menu bar app that holds your MacBook's charge anywhere from 20% to 100% and shows what your battery is really doing. Keep your battery below the boil.">
+  <meta name="description" content="Make your Mac's battery last longer. Simmer is a free, open-source macOS menu bar app that holds your MacBook's charge anywhere from 20% to 100% and shows what your battery is really doing.">
   <meta name="theme-color" content="#1c1029" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f6f0f5" media="(prefers-color-scheme: light)">
   <meta name="color-scheme" content="light dark">
@@ -13,7 +13,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Simmer">
   <meta property="og:title" content="Simmer: macOS battery manager">
-  <meta property="og:description" content="A free, open-source charge limiter and battery insights app for the macOS menu bar. Limit charging from 20% to 100%.">
+  <meta property="og:description" content="Make your Mac's battery last longer. A free, open-source charge limiter and battery insights app for the macOS menu bar.">
   <meta property="og:url" content="https://umarwaseeem.github.io/simmer/">
   <meta property="og:image" content="https://umarwaseeem.github.io/simmer/assets/og.jpg">
   <meta property="og:image:width" content="1200">
@@ -21,7 +21,7 @@
   <meta property="og:image:alt" content="Simmer, macOS battery manager. A menu bar panel showing the charge held at 80%.">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Simmer: macOS battery manager">
-  <meta name="twitter:description" content="A free, open-source charge limiter and battery insights app for the macOS menu bar.">
+  <meta name="twitter:description" content="Make your Mac's battery last longer. A free, open-source charge limiter for the macOS menu bar.">
   <meta name="twitter:image" content="https://umarwaseeem.github.io/simmer/assets/og.jpg">
 
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
@@ -103,7 +103,8 @@
   <div class="wrap hero-grid">
     <div class="hero-copy">
       <h1 id="hero-title" class="hero-title">Simmer: macOS battery manager</h1>
-      <p class="hero-lede">Keep your battery below the boil. Simmer is a free, open-source menu bar app for macOS. It holds your MacBook's charge anywhere from 20% to 100%, and it shows you what the battery is really doing.</p>
+      <p class="hero-promise">Make your Mac's battery last longer.</p>
+      <p class="hero-lede">Simmer is a free, open-source menu bar app for macOS. It holds your MacBook's charge anywhere from 20% to 100%, and it shows you what the battery is really doing.</p>
       <div class="hero-cta">
         <a class="btn" href="https://github.com/umarwaseeem/simmer/releases/latest">
           <svg aria-hidden="true"><use href="#i-down"/></svg>Download for macOS
@@ -207,7 +208,7 @@
     <div class="sim" id="sim">
       <div class="sim-top">
         <h3 class="sim-title">One day on the charger, two ways</h3>
-        <p class="sim-lede">The faded line is a Mac that charges to 100% and stays there. The bright line is the same day with Simmer. Change the settings and watch it react.</p>
+        <p class="sim-lede">Grey: a Mac that charges to 100% and sits there. Orange: the same day with Simmer. Move the limit and watch.</p>
       </div>
       <div class="sim-body">
         <div class="sim-chart" id="sim-chart" role="img" aria-label="Simulated battery charge over 24 hours, with and without Simmer">
@@ -215,10 +216,7 @@
           <ul class="legend" aria-hidden="true">
             <li><i class="lg-with"></i>With Simmer</li>
             <li><i class="lg-without"></i>Without a limit</li>
-            <li><i class="lg-limit"></i>Charge limit</li>
-            <li id="lg-sailing"><i class="lg-band"></i>Sailing range</li>
-            <li><i class="lg-batt"></i>On battery</li>
-            <li><i class="lg-heat"></i>Heat protection pause</li>
+            <li><i class="lg-limit"></i>Your limit</li>
           </ul>
         </div>
         <div class="sim-controls">
@@ -231,37 +229,20 @@
               <span id="lbl-sailing">Sailing</span>
               <button type="button" class="switch" role="switch" aria-checked="true" aria-labelledby="lbl-sailing" data-key="sailing"></button>
             </div>
-            <label class="ctl-sub" for="sim-drift">Drift allowance <output id="sim-drift-out" for="sim-drift">5%</output></label>
-            <input type="range" id="sim-drift" min="1" max="10" step="1" value="5">
+            <p class="ctl-help">Lets the charge drift a little before charging again.</p>
           </div>
           <div class="ctl">
             <div class="ctl-row">
               <span id="lbl-heat">Heat protection</span>
               <button type="button" class="switch" role="switch" aria-checked="true" aria-labelledby="lbl-heat" data-key="heat"></button>
             </div>
-            <p class="ctl-help">Pauses charging at 35 °C, resumes below 33 °C.</p>
+            <p class="ctl-help">Pauses charging while the battery is hot.</p>
           </div>
-          <div class="ctl">
-            <div class="ctl-row">
-              <span id="lbl-auto">Automatic discharge</span>
-              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lbl-auto" data-key="autoDischarge"></button>
-            </div>
-            <p class="ctl-help">Runs from the battery down to the limit while plugged in.</p>
-          </div>
-          <div class="ctl">
-            <div class="ctl-row">
-              <span id="lbl-topup">Top up at 15:00</span>
-              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lbl-topup" data-key="topUp"></button>
-            </div>
-            <p class="ctl-help">Charges to 100% once, for an evening away from a socket.</p>
-          </div>
+          <dl class="sim-stats sim-stats-one" aria-live="polite">
+            <div><dt>Hours sitting above 95%</dt><dd><b><span id="st-boil-with">0</span> h</b> with Simmer<br><span class="muted"><span id="st-boil-without">0</span> h without</span></dd></div>
+          </dl>
         </div>
       </div>
-      <dl class="sim-stats" aria-live="polite">
-        <div><dt>Hours at the boil (95% or more)</dt><dd><span id="st-boil-with">0</span> h with Simmer, <span id="st-boil-without">0</span> h without</dd></div>
-        <div><dt>Times charging restarted</dt><dd id="st-restarts">0</dd></div>
-        <div><dt>Hottest moment while charging</dt><dd id="st-hot">0 °C</dd></div>
-      </dl>
       <p class="sim-note">A simplified model of a typical day, sped up so the shapes are easy to see. Real charge rates and temperatures depend on your Mac, charger and workload.</p>
     </div>
 

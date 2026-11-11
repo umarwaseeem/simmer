@@ -75,6 +75,7 @@
   var glow = $("#glow");
   var gA = $("#g-fill-a"), gB = $("#g-fill-b");
   var hazeNoise = $("#haze-noise"), hazeMap = $("#haze-map");
+  var hazeIntroUntil = performance.now() + 2800;   // the headline shimmers for a moment after load
 
   var INNER = { x: 104, y: 132, w: 112, h: 184 };
   var shown = reduced ? limit : 0;   // displayed level, eases toward the limit
@@ -183,9 +184,10 @@
     });
 
     // heat haze on the headline near the boil
-    if (!reduced && shown >= 91) {
+    var introHaze = performance.now() < hazeIntroUntil;
+    if (!reduced && (shown >= 91 || introHaze)) {
       heroTitle.classList.add("hazy");
-      var hs = (shown - 90) / 10;
+      var hs = Math.max((shown - 90) / 10, introHaze ? 0.85 * Math.min(1, (hazeIntroUntil - performance.now()) / 700) : 0);
       hazeMap.setAttribute("scale", (hs * 3.2).toFixed(2));
       hazeNoise.setAttribute("baseFrequency", "0.006 " + (0.028 + Math.sin(time * 2.2) * 0.006).toFixed(4));
       hazeNoise.setAttribute("seed", String(Math.floor(time * 6) % 50));
@@ -297,11 +299,11 @@
   });
   presets.forEach(function (b) { b.addEventListener("click", function () { setLimit(+b.dataset.limit, "preset"); }); });
 
-  // Intro: on first load the knob turns by itself for a few seconds (80 → 100 → 45 → 80) to show
+  // Intro: on first load the knob turns by itself for about 3 seconds (80 → 100 → 45 → 80) to show
   // what it does. Any touch, key, wheel or scroll stops it at once. Skipped with reduced motion.
   (function knobIntro() {
     if (reduced) return;
-    var keys = [[0, 80], [1400, 100], [2300, 100], [3900, 45], [4600, 45], [5800, 80]];
+    var keys = [[0, 80], [650, 100], [1050, 100], [1800, 45], [2100, 45], [2750, 80]];
     var start = 0, raf = 0, stopped = false;
     function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
     function stop() {
@@ -328,7 +330,7 @@
     setTimeout(function () {
       if (stopped || window.scrollY > 200) { stop(); return; }   // only when the hero is in view
       raf = requestAnimationFrame(frame);
-    }, 900);
+    }, 450);
   })();
 
   /* =========================================================
@@ -401,13 +403,11 @@
     var W = Math.max(280, chartBox.clientWidth);
     var narrow = W < 520;
     var M = { l: 36, r: 8, t: 14 };
-    var HM = narrow ? 220 : 290, GAP = 30, HT = narrow ? 64 : 76, AX = 26;
-    var H = M.t + HM + GAP + HT + AX;
+    var HM = narrow ? 210 : 270, AX = 26;
+    var H = M.t + HM + AX;
     var PW = W - M.l - M.r;
     var x = function (h) { return M.l + h / 24 * PW; };
     var y = function (p) { return M.t + (1 - p / 100) * HM; };
-    var tTop = M.t + HM + GAP;
-    var yt = function (c) { return tTop + (1 - (c - 25) / 20) * HT; };
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("width", W); svg.setAttribute("height", H);
     while (svg.firstChild) svg.removeChild(svg.firstChild);
@@ -421,23 +421,11 @@
     el("stop", { offset: 0, "stop-color": "#ff8c2e", "stop-opacity": 0.28 }, ag);
     el("stop", { offset: 1, "stop-color": "#ff8c2e", "stop-opacity": 0 }, ag);
 
-    // on-battery bands
-    [[8, 9.5], [17.5, 19.5]].forEach(function (r) {
-      el("rect", { x: x(r[0]), y: M.t, width: x(r[1]) - x(r[0]), height: tTop + HT - M.t, class: "c-unplugged" }, svg);
-    });
-    // heat pause bands
-    data.heatBands.forEach(function (r) {
-      el("rect", { x: x(r[0]), y: M.t, width: Math.max(2, x(r[1]) - x(r[0])), height: tTop + HT - M.t, class: "c-heat" }, svg);
-    });
     // grid
     [0, 25, 50, 75, 100].forEach(function (p) {
       el("line", { x1: M.l, x2: W - M.r, y1: y(p), y2: y(p), class: "c-grid" }, svg);
       var t = el("text", { x: M.l - 8, y: y(p) + 4, "text-anchor": "end", class: "c-axis" }, svg); t.textContent = p + "%";
     });
-    // sailing band
-    if (sim.sailing) {
-      el("rect", { x: M.l, y: y(sim.limit), width: PW, height: y(sim.limit - sim.drift) - y(sim.limit), class: "c-band" }, svg);
-    }
     // limit line
     el("line", { x1: M.l, x2: W - M.r, y1: y(sim.limit), y2: y(sim.limit), class: "c-limit" }, svg);
     var lt = el("text", { x: W - M.r - 4, y: y(sim.limit) + (sim.limit > 90 ? 16 : -7), "text-anchor": "end", class: "c-tag c-tag-limit" }, svg);
@@ -453,16 +441,6 @@
     gt.textContent = "Without a limit";
     el("path", { d: pathOf(data.w, y) + "L" + x(24) + " " + y(0) + "L" + x(0) + " " + y(0) + "Z", class: "c-area" }, svg);
     var line = el("path", { d: pathOf(data.w, y), class: "c-line" }, svg);
-
-    // temperature strip
-    [25, 35, 45].forEach(function (c) {
-      if (c === 35) el("line", { x1: M.l, x2: W - M.r, y1: yt(c), y2: yt(c), class: "c-thresh" }, svg);
-      else el("line", { x1: M.l, x2: W - M.r, y1: yt(c), y2: yt(c), class: "c-grid" }, svg);
-      var t = el("text", { x: M.l - 8, y: yt(c) + 4, "text-anchor": "end", class: "c-axis" }, svg); t.textContent = c + "°";
-    });
-    el("path", { d: pathOf(data.temp, yt), class: "c-temp" }, svg);
-    var tt = el("text", { x: M.l + 4, y: tTop - 8, class: "c-tag c-tag-heat" }, svg);
-    tt.textContent = "Battery temperature";
 
     // x axis
     [0, 6, 12, 18, 24].forEach(function (hh) {
@@ -486,8 +464,6 @@
   function updateStats(d) {
     $("#st-boil-with").textContent = fmtH(d.boilW);
     $("#st-boil-without").textContent = fmtH(d.boilG);
-    $("#st-restarts").textContent = d.restarts;
-    $("#st-hot").textContent = d.hot ? d.hot.toFixed(1) + " °C" : "No charging";
   }
 
   function runSim(animate) {
@@ -508,19 +484,12 @@
 
   // controls
   var simLimit = $("#sim-limit"), simLimitOut = $("#sim-limit-out");
-  var drift = $("#sim-drift"), driftOut = $("#sim-drift-out");
   simLimit.addEventListener("input", function () { setLimit(+simLimit.value, "sim"); });
-  drift.addEventListener("input", function () { sim.drift = +drift.value; driftOut.textContent = drift.value + "%"; runSim(true); });
   $$("#sim .switch").forEach(function (sw) {
     sw.addEventListener("click", function () {
       var on = sw.getAttribute("aria-checked") !== "true";
       sw.setAttribute("aria-checked", String(on));
       sim[sw.dataset.key] = on;
-      if (sw.dataset.key === "sailing") {
-        $("#lg-sailing").hidden = !on;
-        sw.closest(".ctl").classList.toggle("is-off", !on);
-        drift.disabled = !on;
-      }
       runSim(true);
     });
   });

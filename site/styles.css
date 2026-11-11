@@ -175,7 +175,12 @@ button { font: inherit; color: inherit; }
   max-width: 10.5ch;
 }
 .hero-title.hazy { filter: url(#haze); }
-.hero-lede { margin-top: 26px; font-size: clamp(1.0625rem, 1.5vw, 1.25rem); color: var(--ink-2); max-width: 36em; line-height: 1.55; }
+.hero-promise {
+  margin-top: 18px; font-family: "Fraunces", Georgia, serif; font-weight: 600;
+  font-size: clamp(1.6rem, 3.2vw, 2.5rem); line-height: 1.15; letter-spacing: -0.01em;
+  background: linear-gradient(90deg, #ff8c2e, #ffc94a 55%, #ff6a3d); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero-lede { margin-top: 16px; font-size: clamp(1.0625rem, 1.5vw, 1.25rem); color: var(--ink-2); max-width: 36em; line-height: 1.55; }
 .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
 .hero-fine { margin-top: 18px; font-size: .9063rem; color: var(--ink-3); }
 
@@ -518,3 +523,10 @@ input[type="range"]:focus-visible { outline-offset: 2px; }
   .led-dot.blink-slow, .led-dot.blink-fast { animation: none; }
   .term-body .caret { animation: none; }
 }
+
+/* simpler simulator: the single stat sits under the controls */
+.sim-stats-one { display: block; margin: 8px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
+.sim-stats-one dt { font-size: .875rem; color: var(--ink-2); }
+.sim-stats-one dd { margin: 6px 0 0; font-size: 1.05rem; line-height: 1.45; }
+.sim-stats-one dd b { font-size: 1.6rem; }
+.sim-stats-one .muted { color: var(--ink-3); }
