@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sparkle update feed for Simmer.
+  Simmer.app reads it from SUFeedURL (Resources/Info.plist):
+    https://raw.githubusercontent.com/umarwaseeem/simmer/main/appcast.xml
+  scripts/release.sh adds one entry per release below the marker line. Each enclosure carries an
+  EdDSA signature (sparkle:edSignature) made with the private key that matches SUPublicEDKey.
+  Do not edit signatures by hand.
+-->
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Simmer</title>
+    <link>https://github.com/umarwaseeem/simmer</link>
+    <description>Updates for Simmer, the open-source battery charge limiter for macOS.</description>
+    <language>en</language>
+    <!-- RELEASES: scripts/release.sh inserts new items below this line (newest first). -->
+  </channel>
+</rss>

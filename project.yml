@@ -1,0 +1,81 @@
+# Xcode project for the app and the widget (generate with `xcodegen generate`).
+# SwiftPM (Package.swift) builds the shared library, the root daemon, the CLI and the tests.
+name: Simmer
+options:
+  bundleIdPrefix: com.umarwaseem
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+packages:
+  SimmerKit:
+    path: .
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.6.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "2"
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGN_STYLE: Manual
+    DEVELOPMENT_TEAM: ""
+    ENABLE_HARDENED_RUNTIME: NO
+    DEAD_CODE_STRIPPING: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+targets:
+  Simmer:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/SimmerApp
+      - path: Sources/SimmerIntents     # App Intents shared with the widget (interactive buttons)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.umarwaseem.simmer
+        PRODUCT_NAME: Simmer
+        INFOPLIST_FILE: Resources/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+    dependencies:
+      - package: SimmerKit
+        product: SimmerShared
+      - package: Sparkle
+      - target: SimmerWidget
+        embed: true
+        codeSign: true
+    postBuildScripts:
+      - name: Copy app icon
+        script: cp "${SRCROOT}/Resources/AppIcon.icns" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/AppIcon.icns"
+        inputFiles: ["$(SRCROOT)/Resources/AppIcon.icns"]
+        outputFiles: ["$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/AppIcon.icns"]
+  SimmerWidget:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: Sources/SimmerWidget
+      - path: Sources/SimmerIntents
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.umarwaseem.simmer.widget
+        PRODUCT_NAME: SimmerWidget
+        INFOPLIST_FILE: Resources/SimmerWidget-Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_ENTITLEMENTS: Resources/SimmerWidget.entitlements
+        APPLICATION_EXTENSION_API_ONLY: YES
+        # Hides the shared intents from Shortcuts in the widget copy (the app copy is the visible one).
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) SIMMER_WIDGET"
+    dependencies:
+      - package: SimmerKit
+        product: SimmerShared
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+schemes:
+  Simmer:
+    build:
+      targets:
+        Simmer: all
+        SimmerWidget: all

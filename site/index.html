@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simmer: macOS battery manager</title>
+  <meta name="description" content="Simmer is a free, open-source macOS menu bar app that holds your MacBook's charge anywhere from 20% to 100% and shows what your battery is really doing. Keep your battery below the boil.">
+  <meta name="theme-color" content="#1c1029" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f6f0f5" media="(prefers-color-scheme: light)">
+  <meta name="color-scheme" content="light dark">
+  <link rel="canonical" href="https://umarwaseeem.github.io/simmer/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Simmer">
+  <meta property="og:title" content="Simmer: macOS battery manager">
+  <meta property="og:description" content="A free, open-source charge limiter and battery insights app for the macOS menu bar. Limit charging from 20% to 100%.">
+  <meta property="og:url" content="https://umarwaseeem.github.io/simmer/">
+  <meta property="og:image" content="https://umarwaseeem.github.io/simmer/assets/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="600">
+  <meta property="og:image:alt" content="Simmer, macOS battery manager. A menu bar panel showing the charge held at 80%.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Simmer: macOS battery manager">
+  <meta name="twitter:description" content="A free, open-source charge limiter and battery insights app for the macOS menu bar.">
+  <meta name="twitter:image" content="https://umarwaseeem.github.io/simmer/assets/og.jpg">
+
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="256x256" href="assets/icon-256.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="preload" href="assets/fonts/fraunces.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    // Apply the saved or system theme before first paint.
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem("simmer-theme"); } catch (e) {}
+      if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", t);
+      document.documentElement.classList.add("js");
+    })();
+  </script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- Inline icon set: drawn for this site, no third-party icons. -->
+<svg width="0" height="0" class="sr-only" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.5 5 13.5h6l-1 8 8-11h-6l1-8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 3.5v3M17.5 5h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3.5 4v16.5H20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="m7 15 4-5 3.5 3L20 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.5 4.2a5 5 0 0 0-5.8 6.6L3.5 16a2.1 2.1 0 0 0 3 3l5.2-5.2a5 5 0 0 0 6.6-5.8l-3 3-2.8-.6-.6-2.8 2.6-3.4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-led" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="9" rx="4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="13.5" r="1.8" fill="currentColor"/><path d="M12 2.5v2.5M6.2 4.6l1.4 2M17.8 4.6l-1.4 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14 17h6M17 14v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m8.5 7-5 5 5 5M15.5 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v4.5M15 3v4.5M6.5 7.5h11V11a5.5 5.5 0 0 1-11 0V7.5ZM12 16.5V21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4.5" y="5" width="15" height="10.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2.5 19h19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-battery" viewBox="0 0 24 24"><rect x="2.5" y="7" width="16.5" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M21.5 10.5v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="5" y="9.5" width="9" height="5" rx="1" fill="currentColor"/></symbol>
+  </defs>
+</svg>
+<svg width="0" height="0" class="sr-only" aria-hidden="true" focusable="false">
+  <filter id="haze" x="-5%" y="-20%" width="110%" height="140%">
+    <feTurbulence id="haze-noise" type="fractalNoise" baseFrequency="0.012 0.06" numOctaves="1" seed="3"/>
+    <feDisplacementMap id="haze-map" in="SourceGraphic" scale="0" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<header class="nav" id="top">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top" aria-label="Simmer, back to top">
+      <picture><source type="image/webp" srcset="assets/icon-256.webp"><img src="assets/icon-256.png" width="36" height="36" alt=""></picture>
+      <span>Simmer</span>
+    </a>
+    <nav aria-label="Sections">
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="https://github.com/umarwaseeem/simmer">GitHub</a></li>
+      </ul>
+    </nav>
+    <div class="nav-actions">
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="Switch to dark theme">
+        <svg class="when-light" aria-hidden="true"><use href="#i-moon"/></svg>
+        <svg class="when-dark" aria-hidden="true"><use href="#i-sun"/></svg>
+      </button>
+      <a class="btn btn-small" href="https://github.com/umarwaseeem/simmer/releases/latest">Download</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- HERO -->
+<section class="hero" aria-labelledby="hero-title">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <h1 id="hero-title" class="hero-title">Simmer: macOS battery manager</h1>
+      <p class="hero-lede">Keep your battery below the boil. Simmer is a free, open-source menu bar app for macOS. It holds your MacBook's charge anywhere from 20% to 100%, and it shows you what the battery is really doing.</p>
+      <div class="hero-cta">
+        <a class="btn" href="https://github.com/umarwaseeem/simmer/releases/latest">
+          <svg aria-hidden="true"><use href="#i-down"/></svg>Download for macOS
+        </a>
+        <a class="btn btn-ghost" href="#install">Install with Homebrew</a>
+      </div>
+      <p class="hero-fine">Free under GPL-3.0. Needs macOS 14 or later. Apple silicon, and Intel in beta.</p>
+    </div>
+
+    <div class="stove" id="stove" style="--heat:.75">
+      <svg class="pot" id="pot" viewBox="0 0 320 400" role="img" aria-labelledby="pot-title">
+        <title id="pot-title">A battery jar on a low flame, filled to the charge limit</title>
+        <defs>
+          <linearGradient id="g-fill" x1="0" y1="1" x2="0" y2="0">
+            <stop id="g-fill-a" offset="0" stop-color="#ff8c2e"/>
+            <stop id="g-fill-b" offset="1" stop-color="#ffd65c"/>
+          </linearGradient>
+          <linearGradient id="g-flame" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0" stop-color="#ffd65c"/>
+            <stop offset=".45" stop-color="#ff8c2e"/>
+            <stop offset="1" stop-color="#ee6b33" stop-opacity="0"/>
+          </linearGradient>
+          <radialGradient id="g-glow" cx=".5" cy=".5" r=".5">
+            <stop offset="0" stop-color="#ff9a3c" stop-opacity=".75"/>
+            <stop offset="1" stop-color="#ee6b33" stop-opacity="0"/>
+          </radialGradient>
+          <clipPath id="jar-clip"><rect x="104" y="132" width="112" height="184" rx="20"/></clipPath>
+        </defs>
+        <ellipse id="glow" cx="160" cy="352" rx="150" ry="70" fill="url(#g-glow)" opacity=".6"/>
+        <g id="steam" class="steam" fill="none" stroke-linecap="round"></g>
+        <rect class="jar-body" x="90" y="118" width="140" height="212" rx="34"/>
+        <g clip-path="url(#jar-clip)">
+          <path id="liquid" fill="url(#g-fill)" d=""/>
+          <g id="bubbles"></g>
+        </g>
+        <line id="limit-tick" class="limit-tick" x1="118" x2="202" y1="170" y2="170"/>
+        <rect class="jar-cap" x="128" y="98" width="64" height="15" rx="6"/>
+        <rect class="jar-stroke" x="90" y="118" width="140" height="212" rx="34"/>
+        <g class="burner">
+          <path class="grate" d="M70 338h180M98 338l-8 14M222 338l8 14"/>
+          <g id="flames"></g>
+          <ellipse class="burner-ring" cx="160" cy="370" rx="104" ry="11"/>
+        </g>
+      </svg>
+
+      <div class="dial-row">
+        <div class="knob-wrap">
+          <svg class="knob" id="knob" viewBox="0 0 240 240" role="slider" tabindex="0"
+               aria-label="Charge limit" aria-valuemin="20" aria-valuemax="100" aria-valuenow="80" aria-valuetext="80%, a gentle simmer">
+            <defs>
+              <radialGradient id="knob-grad" cx=".38" cy=".3" r=".85">
+                <stop offset="0" style="stop-color:var(--knob-hi)"/>
+                <stop offset="1" style="stop-color:var(--knob-cap)"/>
+              </radialGradient>
+            </defs>
+            <g id="knob-scale"></g>
+            <path id="knob-arc" class="knob-arc" d=""/>
+            <g id="knob-body">
+              <circle class="knob-skirt" cx="120" cy="120" r="70"/>
+              <circle class="knob-ridges" cx="120" cy="120" r="62"/>
+              <circle class="knob-cap" cx="120" cy="120" r="50"/>
+              <rect class="knob-pointer" x="116" y="62" width="8" height="40" rx="4"/>
+            </g>
+          </svg>
+        </div>
+        <div class="readout" id="readout">
+          <p class="readout-value"><span id="readout-num">80</span><span class="pct">%</span></p>
+          <p class="readout-name" id="readout-name">A gentle simmer</p>
+          <p class="readout-note" id="readout-note">The sweet spot for a Mac that stays plugged in: plenty of charge, far less wear.</p>
+          <div class="presets" role="group" aria-label="Quick limits">
+            <button type="button" data-limit="60">60%</button>
+            <button type="button" data-limit="80">80%</button>
+            <button type="button" data-limit="100">100%</button>
+          </div>
+        </div>
+      </div>
+      <p class="stove-hint">Turn the knob. The macOS setting stops at 80%. Simmer goes down to 20%, the gold part of the scale.</p>
+    </div>
+  </div>
+</section>
+
+<!-- WHY -->
+<section class="why" aria-labelledby="why-title">
+  <div class="wrap why-in">
+    <h2 id="why-title" class="why-title">Batteries age fastest when they sit full and warm.</h2>
+    <p>A MacBook that lives on its charger spends most of its life at 100%, often warm from work. That is the worst place for the cells. Holding the charge lower, for example at 60–80%, slows the wear a lot. You give up some range on days you do not need it, and you keep more capacity for the years you do.</p>
+  </div>
+</section>
+
+<div id="features">
+
+<!-- CHARGING -->
+<section class="group" id="charging" aria-labelledby="charging-title">
+  <div class="wrap">
+    <header class="group-head">
+      <svg class="group-icon" aria-hidden="true"><use href="#i-bolt"/></svg>
+      <h2 id="charging-title">Charging</h2>
+      <p>Pick a limit, then choose how Simmer holds it. Every control works while the app is closed, because a small helper applies it.</p>
+    </header>
+
+    <div class="sim" id="sim">
+      <div class="sim-top">
+        <h3 class="sim-title">One day on the charger, two ways</h3>
+        <p class="sim-lede">The faded line is a Mac that charges to 100% and stays there. The bright line is the same day with Simmer. Change the settings and watch it react.</p>
+      </div>
+      <div class="sim-body">
+        <div class="sim-chart" id="sim-chart" role="img" aria-label="Simulated battery charge over 24 hours, with and without Simmer">
+          <svg id="chart-svg" aria-hidden="true"></svg>
+          <ul class="legend" aria-hidden="true">
+            <li><i class="lg-with"></i>With Simmer</li>
+            <li><i class="lg-without"></i>Without a limit</li>
+            <li><i class="lg-limit"></i>Charge limit</li>
+            <li id="lg-sailing"><i class="lg-band"></i>Sailing range</li>
+            <li><i class="lg-batt"></i>On battery</li>
+            <li><i class="lg-heat"></i>Heat protection pause</li>
+          </ul>
+        </div>
+        <div class="sim-controls">
+          <div class="ctl ctl-range">
+            <label for="sim-limit">Charge limit <output id="sim-limit-out" for="sim-limit">80%</output></label>
+            <input type="range" id="sim-limit" min="20" max="100" step="1" value="80">
+          </div>
+          <div class="ctl">
+            <div class="ctl-row">
+              <span id="lbl-sailing">Sailing</span>
+              <button type="button" class="switch" role="switch" aria-checked="true" aria-labelledby="lbl-sailing" data-key="sailing"></button>
+            </div>
+            <label class="ctl-sub" for="sim-drift">Drift allowance <output id="sim-drift-out" for="sim-drift">5%</output></label>
+            <input type="range" id="sim-drift" min="1" max="10" step="1" value="5">
+          </div>
+          <div class="ctl">
+            <div class="ctl-row">
+              <span id="lbl-heat">Heat protection</span>
+              <button type="button" class="switch" role="switch" aria-checked="true" aria-labelledby="lbl-heat" data-key="heat"></button>
+            </div>
+            <p class="ctl-help">Pauses charging at 35 °C, resumes below 33 °C.</p>
+          </div>
+          <div class="ctl">
+            <div class="ctl-row">
+              <span id="lbl-auto">Automatic discharge</span>
+              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lbl-auto" data-key="autoDischarge"></button>
+            </div>
+            <p class="ctl-help">Runs from the battery down to the limit while plugged in.</p>
+          </div>
+          <div class="ctl">
+            <div class="ctl-row">
+              <span id="lbl-topup">Top up at 15:00</span>
+              <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="lbl-topup" data-key="topUp"></button>
+            </div>
+            <p class="ctl-help">Charges to 100% once, for an evening away from a socket.</p>
+          </div>
+        </div>
+      </div>
+      <dl class="sim-stats" aria-live="polite">
+        <div><dt>Hours at the boil (95% or more)</dt><dd><span id="st-boil-with">0</span> h with Simmer, <span id="st-boil-without">0</span> h without</dd></div>
+        <div><dt>Times charging restarted</dt><dd id="st-restarts">0</dd></div>
+        <div><dt>Hottest moment while charging</dt><dd id="st-hot">0 °C</dd></div>
+      </dl>
+      <p class="sim-note">A simplified model of a typical day, sped up so the shapes are easy to see. Real charge rates and temperatures depend on your Mac, charger and workload.</p>
+    </div>
+
+    <div class="split split-list">
+      <ul class="features">
+        <li><h3>Charge limit from 20% to 100%</h3><p>Below the 80% floor of the macOS setting. Simmer writes the limit straight to the Mac's power controller.</p></li>
+        <li><h3>Sailing</h3><p>Let the battery drift a few percent below the limit before it charges again. Fewer tiny top-ups, less wear.</p></li>
+        <li><h3>Heat protection</h3><p>Charging pauses while the battery is hot and continues when it cools down.</p></li>
+        <li><h3>Discharge while plugged in</h3><p>Run the Mac from its battery down to the limit without unplugging. It works with the lid closed, and Simmer keeps the Mac awake.</p></li>
+        <li><h3>Automatic discharge</h3><p>When the charge is above the limit, Simmer brings it down for you.</p></li>
+        <li><h3>Top up to 100%</h3><p>One click charges to full once, then Simmer goes back to your limit.</p></li>
+        <li><h3>Calibration cycle</h3><p>A guided full cycle that recalibrates the battery gauge.</p></li>
+        <li><h3>Keep the limit when Simmer quits</h3><p>Charging stays blocked at the limit even when the app is not running.</p></li>
+        <li><h3>Stop charging when sleeping</h3><p>The Mac stops charging before it sleeps, so it does not creep past the limit overnight.</p></li>
+        <li><h3>Disable sleep until the limit</h3><p>The Mac stays awake until the charge reaches the limit.</p></li>
+      </ul>
+      <figure class="shot">
+        <picture><source type="image/webp" srcset="assets/shots/settings-charging-dark.webp" media="(prefers-color-scheme: dark)" data-dark><source type="image/webp" srcset="assets/shots/settings-charging-light.webp"><source srcset="assets/shots/settings-charging-dark.png" media="(prefers-color-scheme: dark)" data-dark><img src="assets/shots/settings-charging-light.png" width="1800" height="1640" loading="lazy" decoding="async" alt="Charging settings: sailing mode with a 5% drift allowance, heat protection at 35 °C, automatic discharge and keep the limit when Simmer quits"></picture>
+        <figcaption>Settings → Charging</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- SMART CHARGING -->
+<section class="group" id="smart" aria-labelledby="smart-title">
+  <div class="wrap">
+    <header class="group-head">
+      <svg class="group-icon" aria-hidden="true"><use href="#i-clock"/></svg>
+      <h2 id="smart-title">Smart charging</h2>
+      <p>The limit changes with your day, so you do not have to change it by hand.</p>
+    </header>
+    <div class="split split-flip">
+      <figure class="shot">
+        <picture><source type="image/webp" srcset="assets/shots/settings-smartCharging-dark.webp" media="(prefers-color-scheme: dark)" data-dark><source type="image/webp" srcset="assets/shots/settings-smartCharging-light.webp"><source srcset="assets/shots/settings-smartCharging-dark.png" media="(prefers-color-scheme: dark)" data-dark><img src="assets/shots/settings-smartCharging-light.png" width="1800" height="1640" loading="lazy" decoding="async" alt="Smart charging settings: desk mode, smart ready-by top-up and cheap charging windows"></picture>
+        <figcaption>Settings → Smart Charging</figcaption>
+      </figure>
+      <div>
+        <ol class="day" aria-label="A sample day with smart charging">
+          <li style="--from:0;--to:6" class="day-cheap"><span>00:00–06:00</span> Cheap or green window: charging prefers these hours</li>
+          <li style="--from:6.5;--to:8" class="day-ready"><span>06:30–08:00</span> Ready by 08:00: tops up to 100% just before you usually leave</li>
+          <li style="--from:9.5;--to:18" class="day-desk"><span>09:30–18:00</span> Desk mode: the lid is closed on the desk, so the limit drops</li>
+        </ol>
+        <ul class="features features-1">
+          <li><h3>Desk mode</h3><p>A lower limit while the Mac sits on a desk for a long time: in clamshell use, after a number of hours on the charger, or either.</p></li>
+          <li><h3>Smart "ready by" top-up</h3><p>Simmer learns when you usually unplug, and charges to 100% just before that time. The rest of the day, it holds your limit.</p></li>
+          <li><h3>Cheap or green charging windows</h3><p>Choose the hours when power is cheaper or cleaner. Simmer charges in those hours, and keeps a floor you set for the rest of the day.</p></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INSIGHTS -->
+<section class="group" id="insights" aria-labelledby="insights-title">
+  <div class="wrap">
+    <header class="group-head">
+      <svg class="group-icon" aria-hidden="true"><use href="#i-chart"/></svg>
+      <h2 id="insights-title">Insights</h2>
+      <p>See where the power goes, why the battery drained overnight, and how the cells are aging.</p>
+    </header>
+
+    <div class="flow" id="flow" data-mode="limit">
+      <div class="flow-top">
+        <h3 class="sim-title">Power flow</h3>
+        <div class="seg" role="radiogroup" aria-label="Power flow state">
+          <button type="button" role="radio" aria-checked="false" data-mode="charging">Charging</button>
+          <button type="button" role="radio" aria-checked="true" data-mode="limit">At the limit</button>
+          <button type="button" role="radio" aria-checked="false" data-mode="discharge">Discharge, plugged in</button>
+          <button type="button" role="radio" aria-checked="false" data-mode="battery">On battery</button>
+        </div>
+      </div>
+      <div class="flow-diagram">
+        <div class="node" id="node-adapter">
+          <svg aria-hidden="true"><use href="#i-plug"/></svg>
+          <strong class="watts" id="w-adapter">19.1 W</strong>
+          <span>Adapter</span>
+        </div>
+        <svg class="wire" id="wire-a" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true"><path d="M0 10H100"/></svg>
+        <div class="node" id="node-mac">
+          <svg aria-hidden="true"><use href="#i-laptop"/></svg>
+          <strong class="watts" id="w-mac">18.6 W</strong>
+          <span>Mac</span>
+        </div>
+        <svg class="wire" id="wire-b" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true"><path d="M0 10H100"/></svg>
+        <div class="node" id="node-battery">
+          <svg aria-hidden="true"><use href="#i-battery"/></svg>
+          <strong class="watts" id="w-battery">0.0 W</strong>
+          <span id="w-battery-label">Resting</span>
+        </div>
+      </div>
+      <p class="flow-caption" id="flow-caption" aria-live="polite">The charger powers the Mac and the battery rests at the limit.</p>
+    </div>
+
+    <ul class="features features-3">
+      <li><h3>Power flow</h3><p>Adapter to Mac to battery, in watts, live in the menu bar panel.</p></li>
+      <li><h3>Battery history</h3><p>Charts of charge, temperature, power, health and cycles, from 24 hours to 30 days.</p></li>
+      <li><h3>Top energy apps and processes</h3><p>Which apps use the most power, with an estimate in watts.</p></li>
+      <li><h3>Sleep drain detective</h3><p>What woke your Mac overnight, and how much charge each night cost.</p></li>
+      <li><h3>"Why won't my Mac sleep?"</h3><p>The apps and processes that keep the Mac awake right now.</p></li>
+      <li><h3>Battery sessions</h3><p>Every stretch on battery: how long, how far it drained, and the average power.</p></li>
+      <li><h3>Chip power</h3><p>Power for the CPU, GPU, Neural Engine and memory.</p></li>
+      <li><h3>USB device power</h3><p>What each connected USB device draws.</p></li>
+      <li><h3>Cells and stress</h3><p>Cell balance and a battery stress meter.</p></li>
+      <li><h3>Hardware and macOS percentage</h3><p>The raw gauge reading next to the smoothed number macOS shows.</p></li>
+      <li><h3>Health and cycles</h3><p>Maximum capacity against the design capacity, and the cycle count.</p></li>
+    </ul>
+
+    <div class="tabs" data-tabs>
+      <div class="tablist" role="tablist" aria-label="Insight screenshots">
+        <button role="tab" type="button" aria-selected="true" aria-controls="tp-history" id="tb-history">Battery history</button>
+        <button role="tab" type="button" aria-selected="false" aria-controls="tp-energy" id="tb-energy" tabindex="-1">Energy</button>
+        <button role="tab" type="button" aria-selected="false" aria-controls="tp-sleep" id="tb-sleep" tabindex="-1">Sleep drain</button>
+        <button role="tab" type="button" aria-selected="false" aria-controls="tp-cells" id="tb-cells" tabindex="-1">Cells and stress</button>
+        <button role="tab" type="button" aria-selected="false" aria-controls="tp-panel" id="tb-panel" tabindex="-1">Menu bar panel</button>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="tp-history" aria-labelledby="tb-history">
+        <figure class="shot shot-wide">
+          <picture><source type="image/webp" srcset="assets/shots/settings-history-dark.webp" media="(prefers-color-scheme: dark)" data-dark><source type="image/webp" srcset="assets/shots/settings-history-light.webp"><source srcset="assets/shots/settings-history-dark.png" media="(prefers-color-scheme: dark)" data-dark><img src="assets/shots/settings-history-light.png" width="1800" height="1640" loading="lazy" decoding="async" alt="Battery history: health, capacity and cycles, a 24-hour charge chart held at 80% and a temperature chart"></picture>
+        </figure>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="tp-energy" aria-labelledby="tb-energy" hidden>
+        <figure class="shot shot-wide">
+          <picture><source type="image/webp" srcset="assets/shots/settings-energy-dark.webp" media="(prefers-color-scheme: dark)" data-dark><source type="image/webp" srcset="assets/shots/settings-energy-light.webp"><source srcset="assets/shots/settings-energy-dark.png" media="(prefers-color-scheme: dark)" data-dark><img src="assets/shots/settings-energy-light.png" width="1800" height="1640" loading="lazy" decoding="async" alt="Energy: apps and processes sorted by power use, in watts"></picture>
+        </figure>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="tp-sleep" aria-labelledby="tb-sleep" hidden>
+        <figure class="shot shot-wide">
+          <picture><source type="image/webp" srcset="assets/shots/settings-sleepDrain-dark.webp" media="(prefers-color-scheme: dark)" data-dark><source type="image/webp" srcset="assets/shots/settings-sleepDrain-light.webp"><source srcset="assets/shots/settings-sleepDrain-dark.png" media="(prefers-color-scheme: dark)" data-dark><img src="assets/shots/settings-sleepDrain-light.png" width="1800" height="1640" loading="lazy" decoding="async" alt="Sleep drain detective: charge lost during each sleep and the reasons the Mac woke up"></picture>
+        </figure>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="tp-cells" aria-labelledby="tb-cells" hidden>
+        <figure class="shot shot-wide">
+          <picture><source type="image/webp" srcset="assets/shots/settings-batteryHealth-dark.webp" media="(prefers-color-scheme: dark)" data-dark><source type="image/webp" srcset="assets/shots/settings-batteryHealth-light.webp"><source srcset="assets/shots/settings-batteryHealth-dark.png" media="(prefers-color-scheme: dark)" data-dark><img src="assets/shots/settings-batteryHealth-light.png" width="1800" height="1640" loading="lazy" decoding="async" alt="Cells and stress: cell voltages, cell balance and the battery stress meter"></picture>
+        </figure>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="tp-panel" aria-labelledby="tb-panel" hidden>
+        <figure class="shot shot-panel">
+          <picture><source type="image/webp" srcset="assets/shots/panel-dark.webp" media="(prefers-color-scheme: dark)" data-dark><source type="image/webp" srcset="assets/shots/panel-light.webp"><source srcset="assets/shots/panel-dark.png" media="(prefers-color-scheme: dark)" data-dark><img src="assets/shots/panel-light.png" width="660" height="1774" loading="lazy" decoding="async" alt="Menu bar panel: charge limit reached at 80%, charge controls, charger report, power flow, battery stats and top energy apps"></picture>
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOOLS -->
+<section class="group" id="tools" aria-labelledby="tools-title">
+  <div class="wrap">
+    <header class="group-head">
+      <svg class="group-icon" aria-hidden="true"><use href="#i-wrench"/></svg>
+      <h2 id="tools-title">Tools</h2>
+      <p>Answers to the questions people ask about a Mac battery, and the housekeeping around them.</p>
+    </header>
+    <div class="split">
+      <ul class="features features-1">
+        <li><h3>Charger report</h3><p>Is your charger, or your cable, strong enough for your Mac? Simmer compares what it offers with what the Mac uses at its peak.</p></li>
+        <li><h3>Conflict doctor</h3><p>Finds the native macOS charge limit and leftover helpers of other charge limiters, which would fight with Simmer. It can remove known leftovers for you.</p></li>
+        <li><h3>Battery passport</h3><p>A PDF with the battery's health record. Useful when you sell your Mac.</p></li>
+        <li><h3>Settings backup and restore</h3><p>Save every setting to a file and load it on another Mac.</p></li>
+        <li><h3>Schedule</h3><p>Run actions at set times, with templates such as a Monday morning top-up or a monthly calibration. Catch-up runs the events the Mac slept through.</p></li>
+      </ul>
+      <div class="tabs" data-tabs>
+        <div class="tablist" role="tablist" aria-label="Tool screenshots">
+          <button role="tab" type="button" aria-selected="true" aria-controls="tp-conflicts" id="tb-conflicts">Conflict doctor</button>
+          <button role="tab" type="button" aria-selected="false" aria-controls="tp-schedule" id="tb-schedule" tabindex="-1">Schedule</button>
+        </div>
+        <div class="tabpanel" role="tabpanel" id="tp-conflicts" aria-labelledby="tb-conflicts">
+          <figure class="shot">
+            <picture><source type="image/webp" srcset="assets/shots/settings-conflicts-dark.webp" media="(prefers-color-scheme: dark)" data-dark><source type="image/webp" srcset="assets/shots/settings-conflicts-light.webp"><source srcset="assets/shots/settings-conflicts-dark.png" media="(prefers-color-scheme: dark)" data-dark><img src="assets/shots/settings-conflicts-light.png" width="1800" height="1640" loading="lazy" decoding="async" alt="Conflict doctor: checks for the macOS charge limit and for leftover helpers of other tools"></picture>
+          </figure>
+        </div>
+        <div class="tabpanel" role="tabpanel" id="tp-schedule" aria-labelledby="tb-schedule" hidden>
+          <figure class="shot">
+            <picture><source type="image/webp" srcset="assets/shots/settings-schedule-dark.webp" media="(prefers-color-scheme: dark)" data-dark><source type="image/webp" srcset="assets/shots/settings-schedule-light.webp"><source srcset="assets/shots/settings-schedule-dark.png" media="(prefers-color-scheme: dark)" data-dark><img src="assets/shots/settings-schedule-light.png" width="1800" height="1640" loading="lazy" decoding="async" alt="Schedule: scheduled tasks with templates and catch-up for missed events"></picture>
+          </figure>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEVICE -->
+<section class="group" id="device" aria-labelledby="device-title">
+  <div class="wrap">
+    <header class="group-head">
+      <svg class="group-icon" aria-hidden="true"><use href="#i-led"/></svg>
+      <h2 id="device-title">Device</h2>
+      <p>Make the charging light tell you something useful, and switch power modes automatically.</p>
+    </header>
+
+    <div class="led" id="led">
+      <div class="led-stage" aria-hidden="true">
+        <div class="led-cable"></div>
+        <div class="led-head"><span class="led-dot" id="led-dot"></span></div>
+      </div>
+      <div class="led-controls">
+        <p class="led-status" id="led-status" aria-live="polite">Smart mode, at the limit: green.</p>
+        <fieldset>
+          <legend>LED mode</legend>
+          <div class="seg" role="radiogroup" aria-label="LED mode" data-group="mode">
+            <button type="button" role="radio" aria-checked="false" data-v="system">System</button>
+            <button type="button" role="radio" aria-checked="true" data-v="smart">Smart</button>
+            <button type="button" role="radio" aria-checked="false" data-v="off">Off</button>
+            <button type="button" role="radio" aria-checked="false" data-v="custom">Custom</button>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Charging state</legend>
+          <div class="seg seg-wrap" role="radiogroup" aria-label="Charging state" data-group="state">
+            <button type="button" role="radio" aria-checked="false" data-v="charging">Charging</button>
+            <button type="button" role="radio" aria-checked="true" data-v="limit">Limit reached</button>
+            <button type="button" role="radio" aria-checked="false" data-v="sailing">Sailing</button>
+            <button type="button" role="radio" aria-checked="false" data-v="discharging">Discharging</button>
+            <button type="button" role="radio" aria-checked="false" data-v="heat">Heat protection</button>
+            <button type="button" role="radio" aria-checked="false" data-v="topup">Top up</button>
+          </div>
+        </fieldset>
+        <div class="led-custom" id="led-custom" hidden>
+          <label for="led-color">Colour for this state</label>
+          <select id="led-color">
+            <option value="green">Green</option>
+            <option value="orange">Orange</option>
+            <option value="blink-slow">Orange, slow blink</option>
+            <option value="blink-fast">Orange, fast blink</option>
+            <option value="off">Off</option>
+            <option value="system">System default</option>
+          </select>
+        </div>
+        <fieldset>
+          <legend>LED notifications</legend>
+          <div class="seg seg-wrap" role="group" aria-label="Play an LED notification">
+            <button type="button" data-blink="blinkGreen">Blink green</button>
+            <button type="button" data-blink="blinkOrange">Blink orange</button>
+            <button type="button" data-blink="alternate">Green / orange</button>
+            <button type="button" data-blink="heartbeat">Heartbeat</button>
+            <button type="button" data-blink="level">Blink the charge level</button>
+          </div>
+          <p class="ctl-help">Scriptable: <code>simmerctl led blink heartbeat 3</code></p>
+        </fieldset>
+      </div>
+    </div>
+
+    <ul class="features features-2">
+      <li><h3>MagSafe LED modes</h3><p>System default, smart (orange while charging, green at the limit), always off, or custom.</p></li>
+      <li><h3>Custom colour per state</h3><p>Pick green, orange, a slow or fast orange blink, or off, for each charging state.</p></li>
+      <li><h3>LED notifications</h3><p>Blink patterns when the limit is reached or the battery is hot, and from your own scripts when a long job is done.</p></li>
+      <li><h3>Low Power and High Power Mode</h3><p>Switch them automatically, with separate choices on battery and on the charger.</p></li>
+    </ul>
+  </div>
+</section>
+
+<!-- EVERYWHERE -->
+<section class="group" id="everywhere" aria-labelledby="everywhere-title">
+  <div class="wrap">
+    <header class="group-head">
+      <svg class="group-icon" aria-hidden="true"><use href="#i-grid"/></svg>
+      <h2 id="everywhere-title">Everywhere</h2>
+      <p>Simmer lives in the menu bar, and also on the desktop, in Shortcuts, in Terminal and in Raycast.</p>
+    </header>
+
+    <figure class="shot shot-widgets">
+      <picture><source type="image/webp" srcset="assets/shots/widgets-dark.webp" media="(prefers-color-scheme: dark)" data-dark><source type="image/webp" srcset="assets/shots/widgets-light.webp"><source srcset="assets/shots/widgets-dark.png" media="(prefers-color-scheme: dark)" data-dark><img src="assets/shots/widgets-light.png" width="1640" height="864" loading="lazy" decoding="async" alt="Desktop widgets: battery ring at 80%, power flow, charging controls, 24-hour charge history and energy use"></picture>
+      <figcaption>Desktop widgets: Battery, Power Flow, Battery History, Top Energy Apps, Charger &amp; Health, and Charging Controls.</figcaption>
+    </figure>
+
+    <div class="split split-term">
+      <div class="term" id="term">
+        <div class="term-bar" aria-hidden="true"><span></span><span></span><span></span><em>simmerctl</em></div>
+        <pre class="term-body" id="term-body" tabindex="0" aria-label="Example simmerctl session"><code>$ simmerctl limit 80
+Charge limit set to 80%
+$ simmerctl set sailing on
+sailing = on
+$ simmerctl status
+Battery:    80% (hardware 79.4%)
+State:      Charge Limit Reached
+Limit:      80%
+Temp:       31.0 °C
+Power:      adapter 19.1 W, system 18.6 W, battery 0.0 W (idle)
+Health:     92.0% (5750 / 6249 mAh)
+Cycles:     111
+$ open "simmer://topup"
+$ simmerctl led blink heartbeat 3</code></pre>
+      </div>
+      <ul class="features features-1 features-tight">
+        <li><h3>6 desktop widgets</h3><p>Each one is configurable. Charging Controls has buttons that work right on the desktop.</p></li>
+        <li><h3>22 Shortcuts actions</h3><p>Set the limit, top up, blink the LED, read the health. Use them in Automations, for example "at the office, set the limit to 60%".</p></li>
+        <li><h3><code>simmer://</code> URL scheme</h3><p>Links that work from a browser, a script or another app.</p></li>
+        <li><h3><code>simmerctl</code> command-line tool</h3><p>Every setting, plus status as JSON for your scripts.</p></li>
+        <li><h3>Raycast extension</h3><p>Status, set the limit, top up, discharge and pause from Raycast.</p></li>
+      </ul>
+    </div>
+
+    <ul class="features features-3">
+      <li><h3>A menu bar panel you arrange</h3><p>Reorder or hide each section of the panel.</p></li>
+      <li><h3>Notifications</h3><p>For the limit reached, heat, calibration and more.</p></li>
+      <li><h3>Automatic updates</h3><p>Through Sparkle, with EdDSA-signed updates.</p></li>
+      <li><h3>Apple silicon and Intel</h3><p>Full support on Apple silicon. Intel Macs are in beta: testers are welcome.</p></li>
+      <li><h3>Private by design</h3><p>No account and no telemetry. The only network request is the update check, and you can turn it off.</p></li>
+    </ul>
+  </div>
+</section>
+
+</div><!-- /features -->
+
+<!-- INSTALL -->
+<section class="install" id="install" aria-labelledby="install-title">
+  <div class="wrap">
+    <h2 id="install-title" class="section-title">Install Simmer</h2>
+    <div class="install-grid">
+      <div class="install-card">
+        <h3>Download</h3>
+        <p>Get the latest <code>Simmer-x.y.z.dmg</code>, open it and drag Simmer to Applications.</p>
+        <a class="btn" href="https://github.com/umarwaseeem/simmer/releases/latest"><svg aria-hidden="true"><use href="#i-down"/></svg>Download the DMG</a>
+      </div>
+      <div class="install-card">
+        <h3>Homebrew</h3>
+        <p>The cask lives in the Simmer repository, so no separate tap repository is needed.</p>
+        <div class="code">
+          <pre id="brew-cmd"><code>brew tap umarwaseeem/simmer https://github.com/umarwaseeem/simmer &amp;&amp; brew install --cask simmer</code></pre>
+          <button type="button" class="copy" id="copy-brew" aria-label="Copy the Homebrew command">
+            <svg class="i-copy" aria-hidden="true"><use href="#i-copy"/></svg>
+            <svg class="i-done" aria-hidden="true"><use href="#i-check"/></svg>
+            <span class="copy-label">Copy</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="sub-title">First launch</h3>
+    <ol class="steps">
+      <li>
+        <h4>Open it once with right-click</h4>
+        <p>Simmer is free and not signed with a paid Apple Developer ID, so macOS blocks a normal double-click the first time. Right-click Simmer in Applications, choose Open, then Open again. On macOS 15 and later, you may need System Settings → Privacy &amp; Security → Open Anyway.</p>
+      </li>
+      <li>
+        <h4>Install the helper</h4>
+        <p>Simmer asks for your administrator password once. Only root can change charging, so a small helper runs as root and does only that. The app itself never runs as root.</p>
+      </li>
+      <li>
+        <h4>Pick a limit</h4>
+        <p>Click the menu bar icon and set the limit. 80% is a good start for a Mac that is mostly plugged in.</p>
+      </li>
+    </ol>
+    <p class="req"><strong>Requirements:</strong> macOS 14 Sonoma or later. Apple silicon is fully supported. Intel Macs are in beta.</p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq" id="faq" aria-labelledby="faq-title">
+  <div class="wrap faq-grid">
+    <h2 id="faq-title" class="section-title">Questions</h2>
+    <div class="faq-list">
+      <details>
+        <summary>Which limit should I use?</summary>
+        <p>For a Mac that is plugged in most of the day, 60–80% is a good balance. Use Top Up before a day away from a socket. If you are on battery most of the time, a limit gives little benefit: let it charge to 100% and keep the Mac cool.</p>
+      </details>
+      <details>
+        <summary>Is a limit really good for the battery?</summary>
+        <p>Lithium-ion cells wear faster at a high charge and at a high temperature. A battery that sits at 100% on a warm desk ages faster than one that rests at 60–80%. A limit does not stop aging. It slows it.</p>
+      </details>
+      <details>
+        <summary>Is it safe?</summary>
+        <p>Simmer uses the same charging switches in the power controller that macOS uses. It does not change voltages or currents. If anything goes wrong, uninstalling the helper restores normal charging.</p>
+      </details>
+      <details>
+        <summary>Does Simmer work when the app is closed?</summary>
+        <p>Yes. The helper applies the limit by itself. With "Keep the limit when Simmer quits" off, quitting the app gives charging back to macOS.</p>
+      </details>
+      <details>
+        <summary>What happens when the Mac sleeps or shuts down?</summary>
+        <p>During sleep, Simmer can stop charging before the Mac sleeps. When the Mac is shut down, Apple silicon Macs can charge past the limit until macOS and the helper start again. Intel Macs that use the <code>BCLM</code> key keep the limit even when off.</p>
+      </details>
+      <details>
+        <summary>Can I use Simmer together with another charge limiter?</summary>
+        <p>No. Two limiters change the same controls and fight each other. Remove the other tool first. The conflict doctor finds the leftovers of common tools and can remove known helper files.</p>
+      </details>
+      <details>
+        <summary>Does Simmer collect any data?</summary>
+        <p>No. There is no telemetry and no account. The only network request is the update check, which you can turn off. This website also has no analytics and sets no cookies.</p>
+      </details>
+    </div>
+    <p class="faq-more">More answers in the <a href="https://github.com/umarwaseeem/simmer/blob/main/docs/FAQ.md">full FAQ</a>.</p>
+  </div>
+</section>
+
+<!-- OPEN SOURCE -->
+<section class="oss" aria-labelledby="oss-title">
+  <div class="wrap oss-in">
+    <svg class="oss-icon" aria-hidden="true"><use href="#i-code"/></svg>
+    <h2 id="oss-title" class="section-title">Open source, every line</h2>
+    <p>Simmer is free software under the GNU General Public License v3.0. You can use, study, share and change it. Bug reports, Intel test reports, translations and pull requests are very welcome.</p>
+    <ul class="oss-links">
+      <li><a href="https://github.com/umarwaseeem/simmer">Source code</a></li>
+      <li><a href="https://github.com/umarwaseeem/simmer/issues">Report a bug</a></li>
+      <li><a href="https://github.com/umarwaseeem/simmer/blob/main/CONTRIBUTING.md">Contributing guide</a></li>
+      <li><a href="https://github.com/umarwaseeem/simmer/blob/main/docs/HOW-IT-WORKS.md">How it works</a></li>
+      <li><a href="https://github.com/umarwaseeem/simmer/blob/main/docs/INTEL-TESTING.md">Test on an Intel Mac</a></li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="foot-brand">
+      <picture><source type="image/webp" srcset="assets/icon-256.webp"><img src="assets/icon-256.png" width="44" height="44" alt=""></picture>
+      <p><strong>Simmer</strong><br>Keep your battery below the boil.</p>
+    </div>
+    <div class="foot-legal">
+      <p class="risk">Use at your own risk — Simmer changes charging behavior through the Mac's power controller; see the <a href="https://github.com/umarwaseeem/simmer/blob/main/LICENSE">GPL-3.0 license</a> (no warranty).</p>
+      <p>Simmer is an independent open-source project and is not affiliated with or endorsed by Apple Inc. Mac, MacBook, MagSafe and macOS are trademarks of Apple Inc., registered in the U.S. and other countries.</p>
+      <p>Built by <a href="https://github.com/umarwaseeem">Umar Waseem</a>. This site has no analytics, no trackers and no cookies. Icons drawn for this site. Fonts: Fraunces, Figtree and JetBrains Mono, under the <a href="assets/fonts/LICENSE.txt">SIL Open Font License</a>.</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

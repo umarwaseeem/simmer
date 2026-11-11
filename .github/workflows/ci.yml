@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # macos-26 (arm64) ships Xcode 26.x with the macOS 26 SDK; pin the exact Xcode for repeatable builds.
+  # Image contents: https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md
+  DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+
+jobs:
+  test:
+    name: Unit tests (SwiftPM)
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
+        with:
+          path: .build
+          key: spm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Package.swift', 'Package.resolved', 'Sources/**/*.swift', 'Tests/**/*.swift') }}
+          restore-keys: spm-${{ runner.os }}-${{ runner.arch }}-
+      - run: swift --version
+      - run: swift build --build-tests
+      - run: swift test --skip-build
+
+  app:
+    name: Build Simmer.app (universal)
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - uses: actions/cache@v6
+        with:
+          path: .build/xcode/SourcePackages
+          key: xcode-spm-${{ runner.os }}-${{ hashFiles('project.yml') }}
+          restore-keys: xcode-spm-${{ runner.os }}-
+      - name: Build
+        run: scripts/build.sh
+      - name: Package DMG
+        run: DMG_LAYOUT=0 scripts/make-dmg.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Simmer-${{ github.sha }}
+          path: dist/*.dmg
+          retention-days: 14

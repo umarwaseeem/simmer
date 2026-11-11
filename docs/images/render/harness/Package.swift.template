@@ -1,0 +1,13 @@
+// swift-tools-version:5.10
+import PackageDescription
+// Screenshot harness for Simmer's README. Sources/ is (re)filled by ../render.sh from the repo.
+let package = Package(
+    name: "Shots",
+    platforms: [.macOS(.v14)],
+    targets: [
+        .target(name: "SimmerShared", path: "Sources/SimmerShared"),
+        .executableTarget(name: "AppShots", dependencies: ["SimmerShared"], path: "Sources/AppShots"),
+        .executableTarget(name: "WidgetShots", dependencies: ["SimmerShared"], path: "Sources/WidgetShots",
+                          swiftSettings: [.define("SIMMER_WIDGET")]),
+    ]
+)

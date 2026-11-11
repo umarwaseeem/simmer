@@ -1,0 +1,58 @@
+name: Intel Mac test report
+description: Tell us how Simmer works on an Intel Mac (support is in beta and untested).
+labels: [intel, testing]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing. Follow [docs/INTEL-TESTING.md](https://github.com/umarwaseeem/simmer/blob/main/docs/INTEL-TESTING.md)
+        and paste the results below. Every report helps, also "it all works".
+  - type: input
+    id: model
+    attributes:
+      label: Mac model
+      description: "`sysctl -n hw.model` (for example MacBookPro16,1)"
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      description: "`sw_vers -productVersion`"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Simmer version
+    validations:
+      required: true
+  - type: textarea
+    id: status
+    attributes:
+      label: "`simmerctl status --json`"
+      render: json
+    validations:
+      required: true
+  - type: checkboxes
+    id: results
+    attributes:
+      label: What worked?
+      options:
+        - label: The helper installed and the panel shows live data
+        - label: Charging stops at the limit (for example 60%)
+        - label: Charging starts again below the limit (sailing range)
+        - label: Discharge while plugged in works
+        - label: Top up to 100% works
+        - label: The MagSafe / charging LED follows the state (if your Mac has one)
+        - label: Uninstalling the helper restores normal charging
+  - type: textarea
+    id: smc
+    attributes:
+      label: SMC key probe
+      description: "Output of `simmerd --status` from step 1 of docs/INTEL-TESTING.md (read-only)."
+      render: text
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else?

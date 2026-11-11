@@ -1,0 +1,77 @@
+name: Bug report
+description: Something does not work as described.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The details below let us reproduce the problem on the same hardware.
+        Search [existing issues](https://github.com/umarwaseeem/simmer/issues) first, please.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+      placeholder: "I set the limit to 80%, but the Mac charged to 100% overnight."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Plug in the charger
+        2. Set the limit to 80%
+        3. Close the lid
+  - type: textarea
+    id: status
+    attributes:
+      label: "Output of `simmerctl status --json`"
+      description: Run it in Terminal while the problem is visible. It contains no personal data.
+      render: json
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Mac model
+      description: "Apple menu > About This Mac, or `sysctl -n hw.model` (for example Mac16,7 / MacBook Pro 14-inch, M5 Pro)."
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      description: "`sw_vers -productVersion` (for example 26.4)."
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Simmer version
+      description: "Settings > About, or `simmerctl version`."
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install Simmer?
+      options:
+        - DMG from GitHub Releases
+        - Homebrew cask
+        - Built from source
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Helper log (optional)
+      description: "`tail -n 100 /Library/Logs/simmerd.log` or `log show --last 30m --predicate 'subsystem == \"com.umarwaseem.simmer\"'`"
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: No other charge limiter (for example Battery Toolkit, bclm or batt) runs at the same time. The Conflict doctor in Settings shows no conflicts.
+          required: false

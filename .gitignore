@@ -1,0 +1,34 @@
+# Build output
+.build/
+dist/
+DerivedData/
+build/
+*.xcodeproj/
+xcuserdata/
+.swiftpm/
+Package.resolved.orig
+
+# Release artifacts (built by scripts/release.sh, uploaded to GitHub Releases)
+*.dmg
+*.zip
+*.delta
+release-notes-*.md
+
+# Secrets: never commit signing keys
+sparkle_private_key
+*private_key*
+*.pem
+*.p12
+*.key
+.env
+.env.*
+
+# Raycast extension
+raycast/node_modules/
+raycast/dist/
+raycast/raycast-env.d.ts
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride

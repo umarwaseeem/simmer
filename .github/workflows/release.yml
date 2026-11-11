@@ -1,0 +1,72 @@
+name: Release
+
+# Push a tag like v1.2.0 after `scripts/release.sh 1.2.0 --bump-only` (or a full local run) is
+# committed to main. This job builds, signs the Sparkle ZIP, publishes the GitHub release, and
+# commits the new appcast.xml entry and Casks/simmer.rb back to main.
+on:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Read version from tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Build, package and sign
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          if [ -z "$SPARKLE_PRIVATE_KEY" ]; then
+            echo "::error::The SPARKLE_PRIVATE_KEY secret is not set (see docs/RELEASING.md)"
+            exit 1
+          fi
+          scripts/release.sh "$VERSION" --no-bump
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=()
+          [[ "$VERSION" == *-* ]] && flags+=(--prerelease)
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/Simmer-$VERSION.dmg" "dist/Simmer-$VERSION.zip" \
+            --title "Simmer $VERSION" \
+            --notes-file "dist/release-notes-$VERSION.md" \
+            --verify-tag "${flags[@]}"
+
+      - name: Commit appcast.xml and cask to main
+        run: |
+          tmp="$(mktemp -d)"
+          cp appcast.xml "$tmp/appcast.xml"
+          cp Casks/simmer.rb "$tmp/simmer.rb"
+          git fetch --no-tags origin main
+          git checkout -B main origin/main
+          cp "$tmp/appcast.xml" appcast.xml
+          cp "$tmp/simmer.rb" Casks/simmer.rb
+          if git diff --quiet -- appcast.xml Casks/simmer.rb; then
+            echo "Nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add appcast.xml Casks/simmer.rb
+          git commit -m "Update appcast and cask for Simmer $VERSION [skip ci]"
+          git push origin main

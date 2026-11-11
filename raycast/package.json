@@ -1,0 +1,92 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "simmer",
+  "title": "Simmer",
+  "description": "Control the Simmer battery charge limiter: see the battery status, set the charge limit, top up, discharge, pause and toggle the limiter.",
+  "icon": "extension-icon.png",
+  "author": "umarwaseeem",
+  "categories": ["System", "Productivity"],
+  "license": "MIT",
+  "keywords": ["battery", "charge", "limit", "charging", "magsafe", "simmer"],
+  "preferences": [
+    {
+      "name": "simmerctlPath",
+      "title": "simmerctl Path",
+      "description": "Where the Simmer command-line tool is installed. The Simmer app installs it with its helper.",
+      "type": "textfield",
+      "required": false,
+      "default": "/usr/local/bin/simmerctl"
+    }
+  ],
+  "commands": [
+    {
+      "name": "status",
+      "title": "Battery Status",
+      "subtitle": "Simmer",
+      "description": "Show the battery level, charging state, limit, power flow and health.",
+      "mode": "view"
+    },
+    {
+      "name": "set-charge-limit",
+      "title": "Set Charge Limit",
+      "subtitle": "Simmer",
+      "description": "Set the charge limit (20-100%).",
+      "mode": "no-view",
+      "arguments": [
+        {
+          "name": "limit",
+          "placeholder": "80",
+          "type": "text",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "top-up",
+      "title": "Charge to 100% Once",
+      "subtitle": "Simmer",
+      "description": "Charge to 100% once, then go back to the limit. Run it again to stop.",
+      "mode": "no-view"
+    },
+    {
+      "name": "discharge",
+      "title": "Discharge to Limit",
+      "subtitle": "Simmer",
+      "description": "Run from the battery down to the limit while plugged in. Run it again to stop.",
+      "mode": "no-view"
+    },
+    {
+      "name": "pause",
+      "title": "Pause Charging Here",
+      "subtitle": "Simmer",
+      "description": "Set the charge limit to the current battery percentage.",
+      "mode": "no-view"
+    },
+    {
+      "name": "toggle-limiter",
+      "title": "Toggle Charge Limiter",
+      "subtitle": "Simmer",
+      "description": "Turn the charge limiter on or off.",
+      "mode": "no-view"
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^2.11.1",
+    "@raycast/utils": "^2.3.3"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^2.2.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.6.0"
+  },
+  "scripts": {
+    "build": "ray build",
+    "dev": "ray develop",
+    "fix-lint": "ray lint --fix",
+    "lint": "ray lint",
+    "publish": "npx @raycast/api@latest publish"
+  }
+}

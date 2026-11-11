@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/umarwaseeem/simmer/discussions
+    about: Ask how something works or share an idea before you open a feature request.
+  - name: Security problem
+    url: https://github.com/umarwaseeem/simmer/security/advisories/new
+    about: Report a vulnerability privately. Do not open a public issue.

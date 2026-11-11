@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.umarwaseem.simmer.helper</string>
+	<key>Program</key>
+	<string>/Library/PrivilegedHelperTools/com.umarwaseem.simmer.helper</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Library/PrivilegedHelperTools/com.umarwaseem.simmer.helper</string>
+	</array>
+	<key>MachServices</key>
+	<dict>
+		<key>com.umarwaseem.simmer.helper</key>
+		<true/>
+	</dict>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>StandardErrorPath</key>
+	<string>/Library/Logs/simmerd.log</string>
+</dict>
+</plist>
