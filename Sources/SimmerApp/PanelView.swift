@@ -10,6 +10,7 @@ struct PanelView: View {
     @AppStorage(SettingsPage.storageKey) private var settingsPage = SettingsPage.general.rawValue
     @State private var sliderValue: Double = 80
     @State private var dragging = false
+    @Environment(\.colorScheme) private var scheme
 
     private var status: SimmerStatus? { model.status }
     private var caps: UICapabilities { UICapabilities(status) }
@@ -72,16 +73,76 @@ struct PanelView: View {
 
     // MARK: header
 
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(stateTitle).font(.headline)
-                Text(subtitle).font(.caption).foregroundStyle(.secondary)
+    @ViewBuilder private var header: some View {
+        if layoutStore.layout.showsIllustration {
+            HStack(alignment: .center, spacing: 16) {
+                GlowingJar(percent: model.battery.percent, limit: jarLimit,
+                           mood: JarMood(status: status, battery: model.battery))
+                    .frame(width: 62, height: 104)
+                    .padding(.leading, 6)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(model.battery.percent)%")
+                        .font(.system(size: 38, weight: .semibold, design: .rounded).monospacedDigit())
+                    Text(stateTitle).font(.headline)
+                    Text(subtitle).font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let e = estimate { estimateChip(e).padding(.top, 3) }
+                }
+                Spacer(minLength: 0)
             }
-            Spacer()
-            Text("\(model.battery.percent)%")
-                .font(.system(size: 26, weight: .semibold, design: .rounded).monospacedDigit())
+        } else {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(stateTitle).font(.headline)
+                        Text(subtitle).font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Text("\(model.battery.percent)%")
+                        .font(.system(size: 26, weight: .semibold, design: .rounded).monospacedDigit())
+                }
+                if let e = estimate { estimateChip(e) }
+            }
         }
+    }
+
+    /// The dashed line in the jar: the level the helper holds now, hidden when the limiter is off.
+    private var jarLimit: Int? {
+        guard model.config.limiterEnabled else { return nil }
+        if let s = status { return s.state == .topUp ? 100 : s.effectiveLimit }
+        return model.config.chargeLimit
+    }
+
+    // MARK: time to limit
+
+    /// Where the battery is heading now: the active limit while charging or discharging, 100% during Top Up and the
+    /// charge phases of calibration. nil when holding, idle or on battery.
+    private var estimateTarget: Int? {
+        guard let s = status else { return nil }
+        switch s.state {
+        case .charging: return s.effectiveLimit
+        case .topUp: return 100
+        case .discharging: return s.effectiveLimit
+        case .calibration: return !s.adapterDisabled && s.battery.isCharging ? 100 : nil
+        case .limiterOff: return s.battery.isCharging ? 100 : nil
+        default: return nil
+        }
+    }
+
+    private var estimate: (target: Int, minutes: Int)? {
+        guard let target = estimateTarget, let m = ChargeEstimate.minutes(to: target, battery: model.battery) else { return nil }
+        return (target, m)
+    }
+
+    private func estimateChip(_ e: (target: Int, minutes: Int)) -> some View {
+        let down = e.target < model.battery.percent
+        return Label("\(e.target)% in \(ChargeEstimate.format(minutes: e.minutes))",
+                     systemImage: down ? "arrow.down.circle" : "clock")
+            .font(.caption.weight(.medium).monospacedDigit())
+            .foregroundStyle(Brand.accentText(scheme))
+            .padding(.horizontal, 7).padding(.vertical, 2)
+            .background(Capsule().fill(Brand.ember.color(0.12)))
+            .help("Estimate from the live charging current; charging slows down above 80%.")
     }
 
     private var stateTitle: String {
@@ -95,7 +156,7 @@ struct PanelView: View {
         var parts: [String] = []
         parts.append(b.externalConnected ? "Plugged in" : "On battery")
         if let s = status { parts.append("Target \(s.targetPercent)%") }
-        if let t = b.timeRemainingMin { parts.append("\(Fmt.duration(minutes: t)) \(b.isCharging ? "to full" : "left")") }
+        if estimate == nil, let t = b.timeRemainingMin { parts.append("\(Fmt.duration(minutes: t)) \(b.isCharging ? "to full" : "left")") }
         return parts.joined(separator: " · ")
     }
 
@@ -132,28 +193,32 @@ struct PanelView: View {
 
     private func chargeControls(_ s: SimmerStatus) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Toggle(isOn: Binding(
-                    get: { model.config.limiterEnabled },
-                    set: { model.setLimiter($0) })) { HelpLabel("Charge Limiter", .limiter) }
-                .toggleStyle(.switch).controlSize(.small)
-                Spacer()
-                Text("\(Int(sliderValue))%").font(.body.monospacedDigit().weight(.medium))
-                    .help(.chargeLimit)
-                InfoButton(.chargeLimit)
+            if layoutStore.layout.usesKnob {
+                LimitKnob(limit: model.config.chargeLimit, enabled: model.config.limiterEnabled && model.connected,
+                          commit: { model.setLimit($0) }) {
+                    limiterToggle
+                }
+            } else {
+                HStack {
+                    limiterToggle
+                    Spacer()
+                    Text("\(Int(sliderValue))%").font(.body.monospacedDigit().weight(.medium))
+                        .help(.chargeLimit)
+                    InfoButton(.chargeLimit)
+                }
+                Slider(value: $sliderValue, in: 20...100, step: 1) {
+                    EmptyView()
+                } minimumValueLabel: {
+                    Text("20").font(.caption2).foregroundStyle(.secondary)
+                } maximumValueLabel: {
+                    Text("100").font(.caption2).foregroundStyle(.secondary)
+                } onEditingChanged: { editing in
+                    dragging = editing
+                    if !editing { model.setLimit(Int(sliderValue.rounded())) }
+                }
+                .disabled(!model.config.limiterEnabled)
+                .help(.chargeLimit)
             }
-            Slider(value: $sliderValue, in: 20...100, step: 1) {
-                EmptyView()
-            } minimumValueLabel: {
-                Text("20").font(.caption2).foregroundStyle(.secondary)
-            } maximumValueLabel: {
-                Text("100").font(.caption2).foregroundStyle(.secondary)
-            } onEditingChanged: { editing in
-                dragging = editing
-                if !editing { model.setLimit(Int(sliderValue.rounded())) }
-            }
-            .disabled(!model.config.limiterEnabled)
-            .help(.chargeLimit)
 
             QuickLimitChips(presets: layoutStore.layout.limitPresets, current: model.config.chargeLimit,
                             enabled: model.config.limiterEnabled,
@@ -199,6 +264,13 @@ struct PanelView: View {
                 }
             }
         }
+    }
+
+    private var limiterToggle: some View {
+        Toggle(isOn: Binding(
+            get: { model.config.limiterEnabled },
+            set: { model.setLimiter($0) })) { HelpLabel("Charge Limiter", .limiter) }
+        .toggleStyle(.switch).controlSize(.small)
     }
 
     // MARK: power flow

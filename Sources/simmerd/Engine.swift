@@ -34,6 +34,12 @@ final class Engine: @unchecked Sendable {
 
     // Last value written to the SMC. nil = unknown, write on the next tick.
     private var appliedInhibit: Bool?
+    // macOS 27+ can gate the SMC charging keys behind a private entitlement. Then Simmer leaves charging
+    // to the macOS Charge Limit, which the app sets through PowerUI (see NativeChargeLimit).
+    private var inhibitWriteFailures = 0
+    private(set) var smcBlocked = false
+    private var nativeReleased = false
+    var useNative: Bool { config.chargeControl == .native || (config.chargeControl == .automatic && smcBlocked) }
     private var appliedAdapterOff: Bool?
     private var appliedLED: LEDColor?
     private var ledOwned = false          // true while a non-system LED value is on the hardware
@@ -104,6 +110,7 @@ final class Engine: @unchecked Sendable {
     // MARK: lifecycle
 
     func start() {
+        detectBlockedSMC()
         let t = DispatchSource.makeTimerSource(queue: queue)
         t.schedule(deadline: .now(), repeating: 5, leeway: .milliseconds(500))
         t.setEventHandler { [weak self] in self?.tick(reason: "timer") }
@@ -158,7 +165,7 @@ final class Engine: @unchecked Sendable {
         var policyConfig = config
         policyConfig.chargeLimit = effective.limit
         let input = PolicyInput(config: policyConfig, runtime: runtime, percent: snapshot.percent, pluggedIn: pluggedIn,
-                                fullyCharged: snapshot.fullyCharged, temperatureC: temperature, backend: backend,
+                                fullyCharged: snapshot.fullyCharged, temperatureC: temperature, backend: (useNative && backend == .none) ? .chte : backend,
                                 supportsDischarge: supportsDischarge, now: now)
         let d = ChargePolicy.decide(input)
 
@@ -274,6 +281,20 @@ final class Engine: @unchecked Sendable {
             return
         }
 
+        if useNative {
+            // Hand charging to the macOS Charge Limit: release the SMC keys once, then leave them alone.
+            if !nativeReleased && mode.writesHardware {
+                _ = try? cc.setAdapterDisabled(false)
+                _ = try? cc.setChargingInhibited(false)
+                appliedInhibit = nil; appliedAdapterOff = nil
+                nativeReleased = true
+                log.notice("charge control: using the macOS Charge Limit (\(self.config.chargeControl.rawValue, privacy: .public), smcBlocked=\(self.smcBlocked))")
+            }
+            applyLED(d, cc: cc, errors: &errors)
+            return
+        }
+        nativeReleased = false
+
         if reassertDue(now) {
             appliedInhibit = nil
             appliedAdapterOff = nil
@@ -290,9 +311,17 @@ final class Engine: @unchecked Sendable {
         func setInhibit(_ v: Bool) -> Bool {
             if appliedInhibit == v { return true }
             if write("charging \(v ? "inhibited" : "allowed")", errors: &errors, { try cc.setChargingInhibited(v) }) {
-                appliedInhibit = v; return true
+                appliedInhibit = v; inhibitWriteFailures = 0; return true
             }
-            appliedInhibit = nil; return false
+            appliedInhibit = nil
+            if mode.writesHardware {
+                inhibitWriteFailures += 1
+                if inhibitWriteFailures >= 3 && !smcBlocked {
+                    smcBlocked = true
+                    log.error("SMC charge control failed 3 times in a row: treating it as blocked by macOS")
+                }
+            }
+            return false
         }
         func setAdapterOff(_ v: Bool) -> Bool {
             if appliedAdapterOff == v { return true }
@@ -405,7 +434,14 @@ final class Engine: @unchecked Sendable {
         s.updatedAt = now
         s.effectiveLimit = effective.limit
         s.limitReason = effective.reason
-        s.capabilities = capabilities
+        var caps = capabilities
+        if useNative {
+            // The macOS Charge Limit can only hold a level: no discharge, top-up timing, sailing or heat pause.
+            caps.chargeInhibit = false; caps.discharge = false; caps.limitOnly = true; caps.limitPersistsWhenOff = true
+        }
+        s.capabilities = caps
+        s.chargeControlBlocked = smcBlocked
+        s.usingNativeLimit = useNative
         status = s
 
         let key = NotifyKey(state: s.state, target: s.targetPercent, inhibit: s.chargingInhibited, adapterOff: s.adapterDisabled)
@@ -496,6 +532,19 @@ final class Engine: @unchecked Sendable {
         forceReassert()
     }
 
+    /// On macOS 27 the charging keys can be listed but unreadable, or missing. Either way SMC control is blocked.
+    private func detectBlockedSMC() {
+        let major = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
+        guard let cc = control else { smcBlocked = major >= 27; return }
+        switch backend {
+        case .none: smcBlocked = major >= 27
+        case .chte: smcBlocked = (try? cc.smc?.read("CHTE")) == nil
+        case .ch0b: smcBlocked = (try? cc.smc?.read("CH0B")) == nil
+        case .bclm: smcBlocked = false
+        }
+        if smcBlocked { log.error("SMC charge control is not readable on this macOS: the app will use the macOS Charge Limit") }
+    }
+
     /// Leaves the hardware in a safe state. Call on `queue`; the caller exits afterwards.
     func shutdown() {
         dispatchPrecondition(condition: .onQueue(queue))
@@ -531,4 +580,5 @@ final class LockedBox<T>: @unchecked Sendable {
     init(_ v: T) { value = v }
     func get() -> T { lock.lock(); defer { lock.unlock() }; return value }
     func set(_ v: T) { lock.lock(); value = v; lock.unlock() }
+
 }

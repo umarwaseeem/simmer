@@ -12,6 +12,21 @@ struct PanelSettingsPage: View {
             Section { PageHeader(page: .panel) }
 
             Section {
+                Picker(selection: Binding(get: { layout.limitControl ?? .knob }, set: { store.layout.limitControl = $0 })) {
+                    ForEach(LimitControlStyle.allCases) { Text($0.title).tag($0) }
+                } label: { HelpLabel("Limit control", .limitControl) }
+                .pickerStyle(.segmented)
+                .fixedSize()
+                Toggle(isOn: Binding(get: { layout.showsIllustration }, set: { store.layout.showIllustration = $0 })) {
+                    HelpLabel("Show battery illustration", .batteryIllustration)
+                }
+            } header: {
+                Text("Look")
+            } footer: {
+                SectionCaption("Turn the knob by dragging around it, scrolling over it or with the arrow keys. The jar animates only while the panel is open.")
+            }
+
+            Section {
                 ForEach(Array(layout.order.enumerated()), id: \.element) { i, section in
                     PanelSectionRow(section: section, index: i, count: layout.order.count,
                                     visible: !layout.hidden.contains(section),
@@ -58,7 +73,7 @@ struct PanelSettingsPage: View {
             } header: {
                 HelpLabel("Quick Limits", .limitPresets)
             } footer: {
-                SectionCaption("Up to \(PanelLayout.maxPresets) buttons under the slider in the panel. Click one to set that limit.")
+                SectionCaption("Up to \(PanelLayout.maxPresets) buttons under the limit control in the panel. Click one to set that limit.")
             }
         }
         .formStyle(.grouped)

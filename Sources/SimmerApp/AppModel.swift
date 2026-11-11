@@ -184,6 +184,7 @@ final class AppModel: ObservableObject {
             notifier.chargerCheck(InsightsModel.shared.chargerReport(status: s, battery: s.battery), pluggedIn: s.battery.externalConnected)
         }
         reloadWidgetIfNeeded(s)
+        NativeLimitController.shared.sync(status: s, config: config)
     }
 
     // MARK: automatic backup

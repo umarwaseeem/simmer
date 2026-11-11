@@ -66,11 +66,24 @@ struct LimitReasonRow: View {
 
 /// Shown instead of Top Up / Discharge / sailing on Intel Macs that only support a fixed charge level (BCLM).
 struct LimitOnlyNote: View {
+    @ObservedObject private var model = AppModel.shared
+    @ObservedObject private var native = NativeLimitController.shared
+
     var body: some View {
-        Label(UICapabilities.limitOnlyMessage, systemImage: "info.circle")
+        Label(message, systemImage: "info.circle")
             .font(.caption).foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
-            .help(.capabilityLimitOnly)
+            .help(model.status?.usingNativeLimit == true
+                  ? "macOS only lets apps set its own Charge Limit here, in steps. Discharge, top-up timing, sailing and heat pause need direct control."
+                  : HelpTopic.capabilityLimitOnly.tooltip)
+    }
+
+    private var message: String {
+        guard let s = model.status, s.usingNativeLimit else { return UICapabilities.limitOnlyMessage }
+        if let err = native.lastError { return "macOS Charge Limit: \(err)" }
+        let held = native.appliedLimit ?? native.nativeTarget(for: s.effectiveLimit)
+        let why = s.chargeControlBlocked ? "macOS blocks direct charge control" : "chosen in Settings"
+        return "Using the macOS Charge Limit (\(held)%) because \(why). Steps: \(native.availableLimits.map(String.init).joined(separator: ", "))%."
     }
 }
 

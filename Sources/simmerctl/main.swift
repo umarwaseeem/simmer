@@ -54,6 +54,7 @@ Settings
       desk-hours <0.5-24>       smart-topup on|off         smart-lead <15-240> (minutes)
       cheap-charging on|off     cheap-floor <20-100>       cheap-window HH:MM-HH:MM[,HH:MM-HH:MM]
       bclm-offset <-10-0>       (older Intel Macs only)
+      charge-control auto|smc|native   auto falls back to the macOS Charge Limit when macOS blocks SMC
 
 Exit status: 0 on success, 1 on error, 2 on a usage error.
 """
@@ -170,8 +171,17 @@ func printStatus(_ s: SimmerStatus) {
     row("Health:", String(format: "%.1f%%", b.healthPercent) + " (\(b.rawMaxCapacity) / \(b.designCapacity) mAh)")
     row("Cycles:", "\(b.cycleCount)")
     if let t = b.timeRemainingMin { row("Remaining:", String(format: "%d:%02d %@", t / 60, t % 60, b.isCharging ? "to full" : "to empty")) }
+    let target = s.runtime.topUp ? 100 : s.effectiveLimit
+    if b.externalConnected, let m = ChargeEstimate.minutes(to: target, battery: b) {
+        row("Estimate:", "\(target)% in about \(ChargeEstimate.format(minutes: m))")
+    }
     row("Flags:", "charging \(s.chargingInhibited ? "inhibited" : "allowed"), adapter \(s.adapterDisabled ? "disabled" : "enabled")" + (s.sleepPrevented ? ", sleep prevented" : ""))
     row("Backend:", "\(s.backend.rawValue), helper \(s.helperVersion)")
+    if s.usingNativeLimit || s.chargeControlBlocked {
+        row("Control:", s.usingNativeLimit
+            ? "macOS Charge Limit" + (s.chargeControlBlocked ? " (macOS blocks direct SMC control)" : " (chosen in settings)")
+            : "SMC (blocked; set charge-control auto to fall back)")
+    }
     if let e = s.lastError { row("Error:", e) }
 }
 
@@ -230,6 +240,7 @@ func printConfig(_ c: SimmerConfig) {
     row("smart-topup", "\(onOff(c.smartTopUpEnabled)) (lead \(c.smartTopUpLeadMinutes) min)")
     row("cheap-charging", "\(onOff(c.cheapChargingEnabled)) (floor \(c.cheapFloorPercent)%, windows \(c.cheapWindows.map(\.cliString).joined(separator: ",")))")
     row("bclm-offset", "\(c.intelBCLMOffset) (older Intel Macs only)")
+    row("charge-control", c.chargeControl.rawValue)
     print("schedule:")
     if c.schedule.isEmpty { print("  (none)") }
     for t in c.schedule {
@@ -289,6 +300,13 @@ func apply(_ key: String, _ value: String?, to c: inout SimmerConfig) {
         guard !windows.isEmpty, windows.allSatisfy({ $0 != nil }) else { usageError("cheap-window must be HH:MM-HH:MM (24 h), comma-separated for several") }
         c.cheapWindows = windows.compactMap { $0 }
     case "bclm-offset": c.intelBCLMOffset = parseInt(value, -10...0, "bclm-offset")
+    case "charge-control":
+        switch value?.lowercased() {
+        case "auto", "automatic": c.chargeControl = .automatic
+        case "smc", "direct": c.chargeControl = .smc
+        case "native", "macos": c.chargeControl = .native
+        default: usageError("charge-control must be auto, smc or native")
+        }
     default: usageError("unknown key '\(key)'")
     }
 }

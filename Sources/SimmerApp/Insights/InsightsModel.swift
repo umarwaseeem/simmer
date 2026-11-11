@@ -95,9 +95,12 @@ final class InsightsModel: ObservableObject {
         Task {
             let found = await Task.detached(priority: .utility) { ConflictScanner.scan() }.value
             scanning = false
-            if found != conflicts { conflicts = found }
+            // Simmer itself sets the macOS Charge Limit in native mode: that is not a conflict.
+            let native = AppModel.shared.status?.usingNativeLimit == true
+            let shown = native ? found.filter { $0.kind != .nativeChargeLimit } : found
+            if shown != conflicts { conflicts = shown }
             conflictsScanned = true
-            if !found.isEmpty { onEvent?(.conflictsFound(found)) }
+            if !shown.isEmpty { onEvent?(.conflictsFound(shown)) }
         }
     }
 

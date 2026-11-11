@@ -141,6 +141,8 @@ public struct SimmerConfig: Codable, Equatable, Sendable {
     public var cheapFloorPercent = 40
     /// Older Intel Macs (BCLM backend): added to the limit before it is written to BCLM. See ChargeControl.bclmValue.
     public var intelBCLMOffset = ChargeControl.defaultBCLMOffset
+    /// SMC (direct), macOS Charge Limit, or automatic fallback when macOS blocks SMC control.
+    public var chargeControl: ChargeControlMode = .automatic
     public init() {}
 
     /// Tolerant decoding: fields added in later versions fall back to defaults, so old config files still load.
@@ -177,6 +179,7 @@ public struct SimmerConfig: Codable, Equatable, Sendable {
         cheapWindows = try v(.cheapWindows, d.cheapWindows)
         cheapFloorPercent = try v(.cheapFloorPercent, d.cheapFloorPercent)
         intelBCLMOffset = try v(.intelBCLMOffset, d.intelBCLMOffset)
+        chargeControl = try v(.chargeControl, d.chargeControl)
     }
 
     public mutating func clamp() {
@@ -274,6 +277,10 @@ public struct SimmerStatus: Codable, Equatable, Sendable {
     public var effectiveLimit = 80
     public var limitReason: LimitReason = .user
     public var capabilities = Capabilities()
+    /// macOS refuses direct SMC charge control (for example macOS 27 entitlement gating).
+    public var chargeControlBlocked = false
+    /// The daemon leaves charging to the macOS Charge Limit (set by the app); SMC charging keys are untouched.
+    public var usingNativeLimit = false
     public init() {}
 
     public var temperatureC: Double { smcTemperatureC ?? battery.temperatureC }
@@ -305,6 +312,8 @@ public struct SimmerStatus: Codable, Equatable, Sendable {
         effectiveLimit = try v(.effectiveLimit, targetPercent)
         limitReason = try v(.limitReason, d.limitReason)
         capabilities = try v(.capabilities, d.capabilities)
+        chargeControlBlocked = try v(.chargeControlBlocked, d.chargeControlBlocked)
+        usingNativeLimit = try v(.usingNativeLimit, d.usingNativeLimit)
     }
 }
 

@@ -17,6 +17,7 @@ enum HelpTopic: String, CaseIterable {
     case history, chargeHistory, temperatureHistory, powerHistory, healthHistory, capacityHistory, cycleHistory, averageTemperature
     // menu bar panel
     case panelLayout, limitPresets, effectiveLimit, chargerReport, topApps, capabilityLimitOnly
+    case limitControl, batteryIllustration, chargeControl
     // smart charging
     case deskMode, deskModeLimit, deskModeTrigger, deskModeHours, smartTopUp, smartTopUpLead, departurePrediction
     case cheapCharging, cheapFloor, cheapWindows
@@ -191,9 +192,18 @@ enum HelpTopic: String, CaseIterable {
         .panelLayout: ("Menu Bar Panel",
                        "Choose which sections the menu bar panel shows and in which order.",
                        "Hide what you never look at, so the panel stays short and the important parts are on top."),
+        .limitControl: ("Limit Control",
+                         "Choose how the panel sets the charge limit: a stove knob or a plain slider. Turn the knob by dragging around it, drag up or down on its centre, scroll over it, click a number on the scale, or use the arrow keys (Shift for steps of 5).",
+                         "The knob shows the limit at a glance and is easy to set with a trackpad. The slider takes less room."),
+        .chargeControl: ("Charge Control",
+                         "How Simmer stops charging. Simmer direct writes the Mac's charging switch (all features). macOS Charge Limit uses the limit in System Settings → Battery, which Simmer sets for you in steps such as 80, 85, 90, 95 and 100%. Automatic uses direct control and switches to the macOS limit if macOS blocks it.",
+                         "Keep Automatic. Newer macOS versions (macOS 27) can block direct control; then Simmer keeps working with the macOS limit, with fewer features."),
+        .batteryIllustration: ("Battery Illustration",
+                               "Shows the battery as a glowing jar at the top of the panel. The liquid is the current charge and the dashed line is the limit. It steams while charging, glows green while holding and pulses while discharging.",
+                               "Shows the state at a glance. The animation runs only while the panel is open, and stops when Reduce Motion is on."),
         .limitPresets: ("Quick Limits",
                         "Buttons in the panel that set the charge limit with one click, for example 60%, 80% and 100%.",
-                        "Faster than the slider when you switch between a desk limit and a full charge for a trip."),
+                        "Faster than the knob or the slider when you switch between a desk limit and a full charge for a trip."),
         .effectiveLimit: ("Active Limit",
                           "The limit the helper applies right now. Desk mode, smart top-up or cheap charging windows can change it for a while.",
                           "Your own limit stays saved. Simmer goes back to it by itself when the reason ends."),

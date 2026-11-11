@@ -150,7 +150,9 @@ struct PanelChrome<Content: View>: View {
 // MARK: - Main
 
 // Render with the default blue accent, whatever this Mac uses (volatile: nothing is written to disk).
-UserDefaults.standard.setVolatileDomain(["AppleAccentColor": 4, "AppleHighlightColor": "0.698039 0.843137 1.000000 Blue"],
+// Keyboard navigation off, so no focus ring is drawn on the first focusable control.
+UserDefaults.standard.setVolatileDomain(["AppleAccentColor": 4, "AppleHighlightColor": "0.698039 0.843137 1.000000 Blue",
+                                         "AppleKeyboardUIMode": 0],
                                         forName: UserDefaults.argumentDomain)
 
 MainActor.assumeIsolated {
@@ -160,6 +162,8 @@ MainActor.assumeIsolated {
     try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
     let only = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : ""
     prepareInsights()
+    // The default panel (knob, battery jar, default sections), whatever an earlier run saved.
+    PanelLayoutStore.shared.layout = PanelLayout()
     let model = makeModel()
     let history = mockHistory()
 
@@ -171,6 +175,9 @@ MainActor.assumeIsolated {
         if only.isEmpty || "panel".hasPrefix(only) || only == "panel" {
             render(PanelChrome { PanelView(model: model) }, width: 330, dark: dark, name: "panel")
         }
+        if only.isEmpty || only == "variants" {
+            renderPanelVariants(dark: dark)
+        }
         for (page, h) in pages where only.isEmpty || page.rawValue.hasPrefix(only) {
             let view: AnyView
             if page == .history {
@@ -181,6 +188,62 @@ MainActor.assumeIsolated {
             render(view, width: 900, height: h, dark: dark, name: "settings-\(page.rawValue)")
         }
     }
+}
+
+// MARK: - Panel variants (states, knob mid-drag, slider look); not used by the README
+
+@MainActor func variantModel(_ state: ChargeState, percent: Int, amps: Double = 0, plugged: Bool = true,
+                             minutes: Int? = nil, tempC: Double = 30.4) -> AppModel {
+    let m = makeModel()
+    var b = mockBattery(percent: percent)
+    b.externalConnected = plugged
+    b.isCharging = amps > 0
+    b.amperageA = amps
+    b.timeRemainingMin = minutes
+    b.temperatureC = tempC
+    b.rawCurrentCapacity = Int(Double(b.rawMaxCapacity) * Double(percent) / 100)
+    if !plugged { b.adapterWatts = 0; b.adapterName = "" }
+    var s = m.status!
+    s.state = state
+    s.battery = b
+    s.chargingInhibited = state != .charging && state != .topUp
+    s.smcTemperatureC = tempC
+    m.status = s
+    m.localBattery = b
+    return m
+}
+
+@MainActor func renderPanelVariants(dark: Bool) {
+    let variants: [(String, AppModel)] = [
+        ("panel-charging", variantModel(.charging, percent: 62, amps: 3.1, minutes: 48)),
+        ("panel-discharging", variantModel(.discharging, percent: 91, amps: -1.6)),
+        ("panel-battery", variantModel(.notPluggedIn, percent: 64, amps: -0.9, plugged: false, minutes: 312)),
+        ("panel-heat", variantModel(.heatProtection, percent: 71, tempC: 38.6)),
+    ]
+    for (name, m) in variants {
+        render(PanelChrome { PanelView(model: m) }, width: 330, dark: dark, name: name)
+    }
+    // The limit knob while the user drags it from 80% to 67%.
+    render(PanelChrome {
+        LimitKnob(limit: 80, enabled: true, dragPreview: 67, commit: { _ in }) {
+            Toggle(isOn: .constant(true)) { Text("Charge Limiter") }.toggleStyle(HarnessSwitch()).controlSize(.small)
+        }
+        .padding(14)
+    }, width: 330, dark: dark, name: "knob-drag")
+    // Limiter off: knob disabled.
+    let off = makeModel()
+    off.config.limiterEnabled = false
+    var so = off.status!
+    so.state = .limiterOff
+    off.status = so
+    render(PanelChrome { PanelView(model: off) }, width: 330, dark: dark, name: "panel-limiter-off")
+    // The classic look: slider, no illustration.
+    let store = PanelLayoutStore.shared
+    let saved = store.layout
+    store.layout.limitControl = .slider
+    store.layout.showIllustration = false
+    render(PanelChrome { PanelView(model: makeModel()) }, width: 330, dark: dark, name: "panel-slider")
+    store.layout = saved
 }
 
 /// The history page with mock data injected (it normally loads from disk).

@@ -31,7 +31,7 @@ enum PanelSection: String, CaseIterable, Codable, Identifiable {
 
     var caption: String {
         switch self {
-        case .chargeControls: return "Limiter switch, slider, quick limits and actions"
+        case .chargeControls: return "Limiter switch, limit knob or slider, quick limits and actions"
         case .chargerReport: return "Is the charger strong enough? Shown while plugged in"
         case .powerFlow: return "Watts from the charger, into the Mac and the battery"
         case .battery: return "Temperature, health and cycles at a glance"
@@ -52,6 +52,13 @@ enum PanelSection: String, CaseIterable, Codable, Identifiable {
     }
 }
 
+/// How the panel shows the charge limit control.
+enum LimitControlStyle: String, Codable, CaseIterable, Identifiable {
+    case knob, slider
+    var id: String { rawValue }
+    var title: String { self == .knob ? "Knob" : "Slider" }
+}
+
 /// Order, visibility and quick-limit presets of the menu bar panel. Stored as JSON in UserDefaults.
 struct PanelLayout: Codable, Equatable {
     var order: [PanelSection] = PanelSection.allCases
@@ -59,6 +66,13 @@ struct PanelLayout: Codable, Equatable {
     var hidden: Set<PanelSection> = PanelLayout.defaultHidden
     var limitPresets: [Int] = PanelLayout.defaultPresets
     var version: Int? = PanelLayout.currentVersion
+    /// Knob or slider for the charge limit. nil (older layouts) = knob.
+    var limitControl: LimitControlStyle? = nil
+    /// The glowing battery jar in the panel header. nil (older layouts) = shown.
+    var showIllustration: Bool? = nil
+
+    var usesKnob: Bool { (limitControl ?? .knob) == .knob }
+    var showsIllustration: Bool { showIllustration ?? true }
 
     static let currentVersion = 2
     static let defaultHidden: Set<PanelSection> = [.chargerReport, .powerFlow, .topApps, .powerModes]
@@ -122,5 +136,11 @@ final class PanelLayoutStore: ObservableObject {
         if on { layout.hidden.remove(s) } else { layout.hidden.insert(s) }
     }
 
-    func reset() { layout = PanelLayout() }
+    /// Default sections and quick limits. The look choices (knob or slider, illustration) stay.
+    func reset() {
+        var l = PanelLayout()
+        l.limitControl = layout.limitControl
+        l.showIllustration = layout.showIllustration
+        layout = l
+    }
 }

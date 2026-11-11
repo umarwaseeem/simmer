@@ -45,6 +45,23 @@ struct ChargingPage: View {
                                       c.heatThresholdC - c.heatResumeDeltaC))
             }
 
+            Section {
+                Picker(selection: model.binding(\.chargeControl)) {
+                    ForEach(ChargeControlMode.allCases, id: \.self) { Text($0.title).tag($0) }
+                } label: { HelpLabel("Charge control", .chargeControl) }
+                if let s = model.status {
+                    Label(s.usingNativeLimit
+                          ? "Now: macOS Charge Limit" + (s.chargeControlBlocked ? " (macOS blocks direct control)" : "")
+                          : (s.chargeControlBlocked ? "Now: direct control is blocked by macOS" : "Now: Simmer direct control"),
+                          systemImage: s.usingNativeLimit ? "gearshape.2" : "cpu")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Charge Control")
+            } footer: {
+                SectionCaption("Automatic uses Simmer's direct control and switches to the macOS Charge Limit if macOS blocks it (expected on macOS 27). The macOS limit only holds 80–100% in steps and has no discharge, sailing or heat pause.")
+            }
+
             Section("Discharge & Quit") {
                 SettingToggle("Automatic discharge", caption: "Drain to the limit while plugged in, when the battery is above it.",
                               topic: .automaticDischarge, isOn: model.binding(\.automaticDischarge))
