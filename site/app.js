@@ -297,6 +297,40 @@
   });
   presets.forEach(function (b) { b.addEventListener("click", function () { setLimit(+b.dataset.limit, "preset"); }); });
 
+  // Intro: on first load the knob turns by itself for a few seconds (80 → 100 → 45 → 80) to show
+  // what it does. Any touch, key, wheel or scroll stops it at once. Skipped with reduced motion.
+  (function knobIntro() {
+    if (reduced) return;
+    var keys = [[0, 80], [1400, 100], [2300, 100], [3900, 45], [4600, 45], [5800, 80]];
+    var start = 0, raf = 0, stopped = false;
+    function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+    function stop() {
+      if (stopped) return;
+      stopped = true; cancelAnimationFrame(raf);
+      ["pointerdown", "keydown", "wheel", "touchstart"].forEach(function (n) { window.removeEventListener(n, stop, true); });
+    }
+    ["pointerdown", "keydown", "wheel", "touchstart"].forEach(function (n) { window.addEventListener(n, stop, { capture: true, passive: true }); });
+    function frame(now) {
+      if (stopped) return;
+      if (!start) start = now;
+      var t = now - start;
+      for (var i = 1; i < keys.length; i++) {
+        if (t <= keys[i][0]) {
+          var a = keys[i - 1], b = keys[i];
+          setLimit(a[1] + (b[1] - a[1]) * ease((t - a[0]) / (b[0] - a[0])), "demo");
+          raf = requestAnimationFrame(frame);
+          return;
+        }
+      }
+      setLimit(80, "demo");
+      stop();
+    }
+    setTimeout(function () {
+      if (stopped || window.scrollY > 200) { stop(); return; }   // only when the hero is in view
+      raf = requestAnimationFrame(frame);
+    }, 900);
+  })();
+
   /* =========================================================
      CHARGE SIMULATOR
      ========================================================= */
