@@ -9,7 +9,24 @@ Sparkle update window, so write entries for people, not for the commit log.
 
 ## [Unreleased]
 
-## [1.0.0] - Unreleased
+## [1.1.0] - 2026-11-11
+
+### New
+- **Stove knob and glowing battery** in the menu bar panel. Turn the knob to set the limit (drag, scroll,
+  arrow keys or VoiceOver); the jar shows the live charge, steams while charging and glows green at the
+  limit. Prefer the classic slider? Settings → Menu Bar Panel → Look.
+- **Time to limit:** "80% in 25 min" while charging or discharging toward the limit (also in `simmerctl status`).
+- **Ready for macOS 27:** if macOS blocks direct charge control, Simmer switches to the macOS Charge Limit
+  automatically (80–100% in steps). Settings → Charging → Charge control, or `simmerctl set charge-control`.
+- **Power flow in the panel by default**, with one plain sentence about what is happening right now.
+- **Close power-hungry apps and processes** from Settings → Energy (Quit, End, and Force options).
+- **Refresh buttons (⌘R)** on all insight pages, with "updated … ago".
+
+### Changed
+- The menu bar panel uses Simmer's warm plum and ember colours.
+- New Simmer jar icon in the menu bar (the battery symbol is still an option).
+
+## [1.0.0] - 2026-11-11
 
 The first public release.
 

@@ -5,7 +5,7 @@ public enum Simmer {
     public static let ctlIdentifier = "com.umarwaseem.simmer.ctl"
     public static let helperLabel = "com.umarwaseem.simmer.helper"
     public static let machService = "com.umarwaseem.simmer.helper"
-    public static let helperVersion = "1.0.0"
+    public static let helperVersion = "1.1.0"
     public static let configPath = "/Library/Application Support/Simmer/config.json"
     public static let statePath = "/Library/Application Support/Simmer/state.json"
     public static let helperInstallPath = "/Library/PrivilegedHelperTools/com.umarwaseem.simmer.helper"
