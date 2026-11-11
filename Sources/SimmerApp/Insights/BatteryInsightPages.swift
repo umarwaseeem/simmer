@@ -37,6 +37,8 @@ struct SessionsPage: View {
             }
         }
         .formStyle(.grouped)
+        .pageRefresh(busy: insights.historyLoading, updated: insights.historyLoadedAt,
+                     note: "the helper records every 5 min") { insights.reloadHistory() }
         .onAppear { insights.reloadHistory() }
     }
 }
@@ -153,6 +155,7 @@ struct BatteryHealthPage: View {
             }
         }
         .formStyle(.grouped)
+        .pageRefresh(busy: insights.detailsLoading, updated: insights.detailsLoadedAt) { insights.reloadDetails() }
         .onAppear { insights.reloadDetails() }
     }
 }

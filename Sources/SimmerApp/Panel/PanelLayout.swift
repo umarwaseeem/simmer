@@ -61,8 +61,8 @@ enum LimitControlStyle: String, Codable, CaseIterable, Identifiable {
 
 /// Order, visibility and quick-limit presets of the menu bar panel. Stored as JSON in UserDefaults.
 struct PanelLayout: Codable, Equatable {
-    var order: [PanelSection] = PanelSection.allCases
-    /// A calm first look: only the limit controls and the battery are shown until the user adds more.
+    var order: [PanelSection] = PanelLayout.defaultOrder
+    /// A calm first look: the limit controls, the power flow and the battery until the user adds more.
     var hidden: Set<PanelSection> = PanelLayout.defaultHidden
     var limitPresets: [Int] = PanelLayout.defaultPresets
     var version: Int? = PanelLayout.currentVersion
@@ -74,8 +74,9 @@ struct PanelLayout: Codable, Equatable {
     var usesKnob: Bool { (limitControl ?? .knob) == .knob }
     var showsIllustration: Bool { showIllustration ?? true }
 
-    static let currentVersion = 2
-    static let defaultHidden: Set<PanelSection> = [.chargerReport, .powerFlow, .topApps, .powerModes]
+    static let currentVersion = 3
+    static let defaultOrder: [PanelSection] = [.chargeControls, .powerFlow, .battery, .chargerReport, .topApps, .powerModes]
+    static let defaultHidden: Set<PanelSection> = [.chargerReport, .topApps, .powerModes]
 
     static let storageKey = "panelLayout"
     static let defaultPresets = [60, 80, 100]
@@ -87,7 +88,7 @@ struct PanelLayout: Codable, Equatable {
     mutating func normalize() {
         var seen = Set<PanelSection>()
         order = order.filter { seen.insert($0).inserted }
-        for s in PanelSection.allCases where !seen.contains(s) { order.append(s) }
+        for s in Self.defaultOrder where !seen.contains(s) { order.append(s) }
         limitPresets = Array(Set(limitPresets.map { min(100, max(20, $0)) })).sorted().prefix(Self.maxPresets).map { $0 }
         if limitPresets.isEmpty { limitPresets = Self.defaultPresets }
     }
@@ -96,15 +97,29 @@ struct PanelLayout: Codable, Equatable {
         guard let data = d.data(forKey: storageKey), var l = try? JSONDecoder().decode(PanelLayout.self, from: data) else {
             return PanelLayout()
         }
-        // Version 2 introduced the calm default panel: move older layouts to it once (keep the presets).
-        if (l.version ?? 1) < currentVersion {
-            l.order = PanelSection.allCases
+        let v = l.version ?? 1
+        if v < 2 {
+            // Version 2 introduced the calm default panel: move older layouts to it once (keep the presets).
+            l.order = defaultOrder
             l.hidden = defaultHidden
+        } else if v < 3 {
+            l.migrateToV3()
+        }
+        if v < currentVersion {
             l.version = currentVersion
             l.save(d)
         }
         l.normalize()
         return l
+    }
+
+    /// Version 3 shows the power flow by default: unhide it once and put it right after the charge controls.
+    /// Every other choice (hidden sections, order, presets, look) stays.
+    mutating func migrateToV3() {
+        hidden.remove(.powerFlow)
+        order.removeAll { $0 == .powerFlow }
+        let at = order.firstIndex(of: .chargeControls).map { $0 + 1 } ?? 0
+        order.insert(.powerFlow, at: at)
     }
 
     func save(_ d: UserDefaults = .standard) {

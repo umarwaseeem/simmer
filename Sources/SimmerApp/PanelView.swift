@@ -13,6 +13,7 @@ struct PanelView: View {
     @Environment(\.colorScheme) private var scheme
 
     private var status: SimmerStatus? { model.status }
+    private var inks: (Color, Color, Color) { Brand.inks(scheme) }
     private var caps: UICapabilities { UICapabilities(status) }
 
     /// Sections that have something to show right now, in the user's order.
@@ -39,6 +40,9 @@ struct PanelView: View {
         }
         .padding(14)
         .frame(width: 330)
+        .background(PanelBackdrop())
+        .foregroundStyle(inks.0, inks.1, inks.2)
+        .tint(Brand.accentFill.color)
         .onAppear {
             sliderValue = Double(model.config.chargeLimit)
             model.refresh()
@@ -280,9 +284,15 @@ struct PanelView: View {
         let bw = b.batteryPowerW
         return VStack(alignment: .leading, spacing: 6) {
             SectionTitle("Power Flow", topic: .powerFlow)
+            Text(PowerFlowSentence.text(status: s, battery: b))
+                .font(.callout.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
+                .help(PowerFlowSentence.breakdown(status: s, battery: b))
             HStack(spacing: 6) {
                 FlowNode(symbol: "powerplug.fill", value: b.externalConnected ? Fmt.watts(s.adapterPowerW) : "–", caption: "Adapter")
-                    .help("Power coming in from the charger right now.")
+                    .help(b.externalConnected
+                          ? "Power coming in from the charger right now. \(b.adapterName.isEmpty ? "Power adapter" : b.adapterName)\(b.adapterWatts > 0 ? ", \(b.adapterWatts) W" : "")."
+                          : "No charger connected.")
                 Image(systemName: "arrow.right").foregroundStyle(.secondary)
                 FlowNode(symbol: "laptopcomputer", value: Fmt.watts(s.systemPowerW), caption: "Mac")
                     .help("Power your Mac is using right now (screen, chip, apps).")
@@ -291,11 +301,6 @@ struct PanelView: View {
                 FlowNode(symbol: MenuBarLabel.batterySymbol(b.percent), value: String(format: "%+.1f W", bw),
                          caption: abs(bw) < 0.05 ? "Idle" : (bw > 0 ? "Charging" : "Discharging"))
                     .help("Power going into the battery (+) or coming out of it (−). Near 0 means the battery is resting at the limit.")
-            }
-            if b.externalConnected {
-                Text([b.adapterName.isEmpty ? "Power adapter" : b.adapterName, b.adapterWatts > 0 ? "\(b.adapterWatts) W" : nil]
-                    .compactMap { $0 }.joined(separator: " · "))
-                    .font(.caption).foregroundStyle(.secondary)
             }
         }
     }
@@ -386,7 +391,7 @@ struct BatteryTile: View {
             Text(caption).font(.caption2).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, minHeight: 54)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.05)))
+        .background(RoundedRectangle(cornerRadius: 8).fill(.primary.opacity(0.06)))
         .help(topic)
     }
 }
@@ -431,8 +436,8 @@ struct ActionButton: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(active ? Color.white : Color.primary)
-        .background(RoundedRectangle(cornerRadius: 8).fill(active ? Color.accentColor : Color.primary.opacity(0.07)))
+        .foregroundStyle(active ? AnyShapeStyle(Brand.onAccent.color) : AnyShapeStyle(.primary))
+        .background(RoundedRectangle(cornerRadius: 8).fill(active ? AnyShapeStyle(Brand.accentFill.color) : AnyShapeStyle(.primary.opacity(0.07))))
     }
 }
 

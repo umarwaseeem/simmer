@@ -144,6 +144,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
 struct SettingsView: View {
     @ObservedObject var model: AppModel
     @AppStorage(SettingsPage.storageKey) private var pageRaw = SettingsPage.general.rawValue
+    @State private var refresh: PageRefresh?
 
     private var page: SettingsPage { SettingsPage(rawValue: pageRaw) ?? .general }
 
@@ -155,6 +156,14 @@ struct SettingsView: View {
         } detail: {
             SettingsDetail(page: page, model: model)
                 .navigationTitle(page.title)
+                .onPreferenceChange(PageRefreshKey.self) { r in
+                    MainActor.assumeIsolated { refresh = r }
+                }
+                .toolbar {
+                    if let refresh {
+                        ToolbarItem(placement: .primaryAction) { PageRefreshControl(refresh: refresh) }
+                    }
+                }
         }
         .frame(minWidth: 760, idealWidth: 820, minHeight: 520, idealHeight: 640)
         .background(ResizableWindow(minSize: NSSize(width: 760, height: 520)))

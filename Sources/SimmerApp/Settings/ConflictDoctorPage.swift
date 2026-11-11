@@ -31,9 +31,7 @@ struct ConflictDoctorPage: View {
                     }
                 }
             } header: {
-                RefreshHeader(title: "Scan Results", topic: .conflicts, updated: nil, busy: insights.scanning) {
-                    insights.scanConflicts()
-                }
+                HelpLabel("Scan Results", .conflicts)
             } footer: {
                 SectionCaption("The scan is read-only. It looks at /Library/LaunchDaemons, /Library/PrivilegedHelperTools, running apps and the macOS charge limit setting.")
             }
@@ -55,6 +53,7 @@ struct ConflictDoctorPage: View {
             }
         }
         .formStyle(.grouped)
+        .pageRefresh(busy: insights.scanning, updated: insights.conflictsScannedAt) { insights.scanConflicts() }
         .onAppear { insights.scanConflicts() }
         .confirmationDialog(pendingFix.map { "Remove \($0.name)?" } ?? "Remove?",
                             isPresented: Binding(get: { pendingFix != nil }, set: { if !$0 { pendingFix = nil } }),

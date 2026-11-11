@@ -23,8 +23,8 @@ struct QuickLimitChips: View {
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(on ? Color.white : Color.primary)
-                .background(Capsule().fill(on ? Color.accentColor : Color.primary.opacity(0.07)))
+                .foregroundStyle(on ? AnyShapeStyle(Brand.onAccent.color) : AnyShapeStyle(.primary))
+                .background(Capsule().fill(on ? AnyShapeStyle(Brand.accentFill.color) : AnyShapeStyle(.primary.opacity(0.07))))
                 .help("Set the charge limit to \(p)%")
                 .accessibilityAddTraits(on ? .isSelected : [])
             }
@@ -58,7 +58,7 @@ struct LimitReasonRow: View {
                 Text("Your limit \(userLimit)%").font(.caption2).foregroundStyle(.secondary).fixedSize()
             }
             .padding(.horizontal, 8).padding(.vertical, 5)
-            .background(RoundedRectangle(cornerRadius: 7).fill(Color.accentColor.opacity(0.10)))
+            .background(RoundedRectangle(cornerRadius: 7).fill(.tint.opacity(0.12)))
             .help(status.limitReasonTopic)
         }
     }

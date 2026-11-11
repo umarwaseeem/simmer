@@ -31,7 +31,7 @@ struct SleepDrainPage: View {
                         Text("Reading the macOS power log… this can take a few seconds.").foregroundStyle(.secondary)
                     }
                 }
-            case .loaded(let all, let at):
+            case .loaded(let all, _):
                 let sessions = all.filter { $0.hours >= 0.25 }.sorted { $0.start > $1.start }
                 if sessions.isEmpty {
                     Section {
@@ -50,7 +50,7 @@ struct SleepDrainPage: View {
                     Section {
                         ForEach(sessions) { SleepSessionRow(session: $0) }
                     } header: {
-                        RefreshHeader(title: "Sleeps, Last 7 Days", topic: .sleepDrain, updated: at, busy: false) { reload() }
+                        HelpLabel("Sleeps, Last 7 Days", .sleepDrain)
                     } footer: {
                         SectionCaption("On battery, a sleeping Mac should lose about 1% per hour or less. Sleeps on the charger show wakes only.")
                     }
@@ -68,7 +68,13 @@ struct SleepDrainPage: View {
             }
         }
         .formStyle(.grouped)
+        .pageRefresh(busy: load == .loading, updated: loadedAt) { reload() }
         .task { if autoLoad { await read() } }
+    }
+
+    private var loadedAt: Date? {
+        if case .loaded(_, let at) = load { return at }
+        return nil
     }
 
     private func tip(_ s: String) -> some View {
@@ -77,6 +83,7 @@ struct SleepDrainPage: View {
     }
 
     private func reload() {
+        guard load != .loading else { return }
         load = .loading
         Task { await read() }
     }
@@ -272,6 +279,7 @@ struct SleepSessionRow: View {
 struct SleepBlockersPage: View {
     @State private var blockers: [SleepBlocker]?
     @State private var updated: Date?
+    @State private var reading = false
     private let autoLoad: Bool
 
     init(initial: [SleepBlocker]? = nil, autoLoad: Bool = true) {
@@ -296,9 +304,7 @@ struct SleepBlockersPage: View {
                     HStack(spacing: 8) { ProgressView().controlSize(.small); Text("Checking…").foregroundStyle(.secondary) }
                 }
             } header: {
-                RefreshHeader(title: "Keeping Your Mac Awake", topic: .sleepBlockers, updated: updated, busy: false) {
-                    Task { await read() }
-                }
+                HelpLabel("Keeping Your Mac Awake", .sleepBlockers)
             } footer: {
                 SectionCaption("Quit is offered only for regular apps. System processes are never stopped: they finish their task (for example a backup) and let go by themselves.")
             }
@@ -312,6 +318,7 @@ struct SleepBlockersPage: View {
             }
         }
         .formStyle(.grouped)
+        .pageRefresh(busy: reading, updated: updated, note: "checks every 5 s") { Task { await read() } }
         .task {
             while autoLoad && !Task.isCancelled {
                 await read()
@@ -321,8 +328,11 @@ struct SleepBlockersPage: View {
     }
 
     private func read() async {
+        guard !reading else { return }
+        reading = true
         blockers = await Task.detached(priority: .utility) { SleepBlocker.current() }.value
         updated = Date()
+        reading = false
     }
 }
 

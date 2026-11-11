@@ -85,6 +85,7 @@ struct FakeSettingsWindow: View {
     let page: SettingsPage
     let model: AppModel
     @Environment(\.colorScheme) private var scheme
+    @State private var refresh: PageRefresh?
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
@@ -96,16 +97,33 @@ struct FakeSettingsWindow: View {
                 .fill(scheme == .dark ? Color(white: 0.17) : Color(white: 0.955))
                 .padding(8))
             VStack(spacing: 0) {
-                Text(page.title).font(.system(size: 13, weight: .semibold))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 20).frame(height: 50)
+                FakeToolbar(title: page.title, refresh: refresh)
                 SettingsDetail(page: page, model: model)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .onPreferenceChange(PageRefreshKey.self) { r in MainActor.assumeIsolated { refresh = r } }
             }
         }
         .background(scheme == .dark ? Color(white: 0.115) : Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.primary.opacity(0.12), lineWidth: 1))
+    }
+}
+
+/// The window title and, on pages with live data, the Refresh control that the real window puts in its toolbar.
+struct FakeToolbar: View {
+    let title: String
+    let refresh: PageRefresh?
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(title).font(.system(size: 13, weight: .semibold))
+            Spacer()
+            if let refresh {
+                PageRefreshControl(refresh: refresh)
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+            }
+        }
+        .padding(.leading, 20).padding(.trailing, 16).frame(height: 50)
     }
 }
 
@@ -162,6 +180,15 @@ MainActor.assumeIsolated {
     try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
     let only = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : ""
     prepareInsights()
+    // Energy page: what the close buttons offer for the demo processes (no real process scan).
+    ProcessControl.shared.overrides = [
+        "/usr/local/bin/node": .process(name: "node", procs: [ProcRef(pid: 4242, path: "/usr/local/bin/node", uid: 501)]),
+        "/usr/local/bin/ffmpeg": .process(name: "ffmpeg", procs: [ProcRef(pid: 5120, path: "/usr/local/bin/ffmpeg", uid: 501)]),
+        "/usr/local/bin/python3": .process(name: "python3", procs: [ProcRef(pid: 6001, path: "/usr/local/bin/python3", uid: 501)]),
+        "/usr/local/bin/photo-export": .process(name: "photo-export", procs: [ProcRef(pid: 7310, path: "/usr/local/bin/photo-export", uid: 501)]),
+        "/usr/local/bin/rsync": .blocked(ProcessControl.otherUserReason),
+        "/usr/local/bin/backup-agent": .blocked(ProcessControl.otherUserReason),
+    ]
     // The default panel (knob, battery jar, default sections), whatever an earlier run saved.
     PanelLayoutStore.shared.layout = PanelLayout()
     let model = makeModel()
@@ -207,6 +234,7 @@ MainActor.assumeIsolated {
     s.state = state
     s.battery = b
     s.chargingInhibited = state != .charging && state != .topUp
+    s.adapterDisabled = state == .discharging
     s.smcTemperatureC = tempC
     m.status = s
     m.localBattery = b
@@ -219,6 +247,8 @@ MainActor.assumeIsolated {
         ("panel-discharging", variantModel(.discharging, percent: 91, amps: -1.6)),
         ("panel-battery", variantModel(.notPluggedIn, percent: 64, amps: -0.9, plugged: false, minutes: 312)),
         ("panel-heat", variantModel(.heatProtection, percent: 71, tempC: 38.6)),
+        ("panel-macos-paused", variantModel(.charging, percent: 62)),
+        ("panel-weak-charger", variantModel(.charging, percent: 55, amps: -0.7)),
     ]
     for (name, m) in variants {
         render(PanelChrome { PanelView(model: m) }, width: 330, dark: dark, name: name)
@@ -261,6 +291,7 @@ struct FakeSettingsWindowContent<Detail: View>: View {
     let page: SettingsPage
     @ViewBuilder var detail: Detail
     @Environment(\.colorScheme) private var scheme
+    @State private var refresh: PageRefresh?
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
@@ -272,10 +303,9 @@ struct FakeSettingsWindowContent<Detail: View>: View {
                 .fill(scheme == .dark ? Color(white: 0.17) : Color(white: 0.955))
                 .padding(8))
             VStack(spacing: 0) {
-                Text(page.title).font(.system(size: 13, weight: .semibold))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 20).frame(height: 50)
+                FakeToolbar(title: page.title, refresh: refresh)
                 detail.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .onPreferenceChange(PageRefreshKey.self) { r in MainActor.assumeIsolated { refresh = r } }
             }
         }
         .background(scheme == .dark ? Color(white: 0.115) : Color.white)
@@ -298,7 +328,8 @@ struct HarnessSwitch: ToggleStyle {
         HStack(spacing: 8) {
             configuration.label
             ZStack(alignment: configuration.isOn ? .trailing : .leading) {
-                Capsule().fill(configuration.isOn ? Color.accentColor : Color.primary.opacity(0.13))
+                // `.tint` follows the panel's ember tint like the real switch; elsewhere it is the system accent.
+                Capsule().fill(configuration.isOn ? AnyShapeStyle(.tint) : AnyShapeStyle(Color.primary.opacity(0.13)))
                 Circle().fill(.white).shadow(color: .black.opacity(0.25), radius: 0.8, y: 0.5)
                     .padding(1.5)
             }

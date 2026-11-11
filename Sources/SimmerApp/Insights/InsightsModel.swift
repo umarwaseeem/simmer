@@ -22,6 +22,13 @@ final class InsightsModel: ObservableObject {
     @Published var conflicts: [Conflict] = []
     @Published var conflictsScanned = false
     @Published var scanning = false
+    // Busy flags and read times for the Refresh controls.
+    @Published var energyLoading = false
+    @Published var historyLoading = false
+    @Published var historyLoadedAt: Date?
+    @Published var detailsLoading = false
+    @Published var detailsLoadedAt: Date?
+    @Published var conflictsScannedAt: Date?
 
     /// Called for events that can produce a notification.
     var onEvent: ((InsightEvent) -> Void)?
@@ -64,27 +71,35 @@ final class InsightsModel: ObservableObject {
     // MARK: loads
 
     func reloadEnergy() {
-        guard !frozen else { return }
+        guard !frozen, !energyLoading else { return }
+        energyLoading = true
         Task {
             let e = await Task.detached(priority: .utility) { EnergyReport.load() }.value
             if e != energy { energy = e }
             energyLoaded = true
+            energyLoading = false
         }
     }
 
     func reloadHistory() {
-        guard !frozen else { return }
+        guard !frozen, !historyLoading else { return }
+        historyLoading = true
         Task {
             let h = await Task.detached(priority: .utility) { BatteryHistory.load() }.value
             if h != history { history = h }
+            historyLoadedAt = Date()
+            historyLoading = false
         }
     }
 
     func reloadDetails() {
-        guard !frozen else { return }
+        guard !frozen, !detailsLoading else { return }
+        detailsLoading = true
         Task {
             let d = await Task.detached(priority: .utility) { BatteryDetails.read() }.value
             if d != details { details = d }
+            detailsLoadedAt = Date()
+            detailsLoading = false
             if !d.cellVoltagesMV.isEmpty, d.cellBalance == .poor { onEvent?(.cellBalancePoor(imbalanceMV: d.cellImbalanceMV)) }
         }
     }
@@ -95,6 +110,7 @@ final class InsightsModel: ObservableObject {
         Task {
             let found = await Task.detached(priority: .utility) { ConflictScanner.scan() }.value
             scanning = false
+            conflictsScannedAt = Date()
             // Simmer itself sets the macOS Charge Limit in native mode: that is not a conflict.
             let native = AppModel.shared.status?.usingNativeLimit == true
             let shown = native ? found.filter { $0.kind != .nativeChargeLimit } : found

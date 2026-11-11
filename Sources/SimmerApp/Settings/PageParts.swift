@@ -45,31 +45,6 @@ struct PageLinkButton: View {
     }
 }
 
-/// "Updated 18:42" plus a refresh button, used in section headers of live pages.
-struct RefreshHeader: View {
-    let title: String
-    let topic: HelpTopic
-    let updated: Date?
-    let busy: Bool
-    let refresh: () -> Void
-
-    var body: some View {
-        HStack(spacing: 8) {
-            HelpLabel(title, topic)
-            Spacer()
-            if busy { ProgressView().controlSize(.small) }
-            if let updated {
-                Text("Updated \(updated.formatted(date: .omitted, time: .shortened))")
-                    .font(.caption2).foregroundStyle(.tertiary)
-            }
-            Button { refresh() } label: { Image(systemName: "arrow.clockwise") }
-                .buttonStyle(.borderless).controlSize(.small)
-                .help("Refresh now")
-                .disabled(busy)
-        }
-    }
-}
-
 /// A short colored verdict line with a symbol, for example "Cells are well balanced".
 struct VerdictRow: View {
     let symbol: String

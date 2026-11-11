@@ -33,6 +33,11 @@ final class ComponentPowerModel: ObservableObject {
         }
     }
 
+    /// Starts the last-minute chart over. Sampling keeps running.
+    func reset() {
+        recent = latest.map { [$0] } ?? []
+    }
+
     private nonisolated static func sharedReader() -> ComponentPowerReader? { reader }
 }
 
@@ -120,6 +125,8 @@ struct ComponentPowerPage: View {
             }
         }
         .formStyle(.grouped)
+        .pageRefresh(busy: power.state == .starting, updated: power.latest?.takenAt,
+                     note: "live, every second") { power.reset() }
         .task { if live { await power.run() } }
     }
 

@@ -5,6 +5,8 @@ struct ChargerPage: View {
     @ObservedObject var model: AppModel
     @ObservedObject var insights: InsightsModel = .shared
     @State private var extras = ChargerDetails()
+    @State private var updated: Date?
+    @State private var reading = false
 
     var body: some View {
         let b = model.battery
@@ -84,12 +86,25 @@ struct ChargerPage: View {
             }
         }
         .formStyle(.grouped)
+        .pageRefresh(busy: reading, updated: updated, note: "checks every 5 s") {
+            model.refresh()
+            insights.reloadHistory()
+            Task { await read() }
+        }
         .task {
             while !Task.isCancelled {
-                extras = await Task.detached(priority: .utility) { ChargerDetails.read() }.value
+                await read()
                 try? await Task.sleep(for: .seconds(5))
             }
         }
+    }
+
+    private func read() async {
+        guard !reading else { return }
+        reading = true
+        extras = await Task.detached(priority: .utility) { ChargerDetails.read() }.value
+        updated = Date()
+        reading = false
     }
 
     private func name(_ r: ChargerReport, _ b: BatterySnapshot) -> String {

@@ -22,6 +22,7 @@ struct HistoryPage: View {
     @ObservedObject var model: AppModel
     @State private var load: HistoryLoad
     @State private var loadedAt: Date?
+    @State private var reading = false
     @AppStorage("historyRange") private var rangeRaw = HistoryRange.day.rawValue
     @AppStorage("historyLongTermMetric") private var metricRaw = LongTermMetric.health.rawValue
 
@@ -144,15 +145,25 @@ struct HistoryPage: View {
             }
         }
         .formStyle(.grouped)
+        .pageRefresh(busy: reading, updated: loadedAt, note: "the helper records every 5 min") {
+            Task { await read() }
+        }
         .task {
             while autoReload && !Task.isCancelled {
-                let h = await Task.detached(priority: .utility) { BatteryHistory.load() }.value
-                let next: HistoryLoad = h.map { .loaded($0) } ?? .missing
-                if next != load { load = next }
-                loadedAt = Date()
+                await read()
                 try? await Task.sleep(for: Self.reloadInterval)
             }
         }
+    }
+
+    private func read() async {
+        guard !reading else { return }
+        reading = true
+        let h = await Task.detached(priority: .utility) { BatteryHistory.load() }.value
+        let next: HistoryLoad = h.map { .loaded($0) } ?? .missing
+        if next != load { load = next }
+        loadedAt = Date()
+        reading = false
     }
 }
 

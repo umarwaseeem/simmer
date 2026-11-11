@@ -153,11 +153,11 @@ struct LimitKnob<Footer: View>: View {
                     .font(.system(size: 30, weight: .semibold, design: .rounded).monospacedDigit())
                 Text("%").font(.system(size: 16, weight: .semibold, design: .rounded)).foregroundStyle(.secondary)
             }
-            .foregroundStyle(enabled ? Color.primary : Color.secondary)
+            .foregroundStyle(enabled ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
             .accessibilityHidden(true)
             Text(SimmerLevel.name(value))
                 .font(.callout.weight(.semibold))
-                .foregroundStyle(enabled ? Brand.accentText(scheme) : Color.secondary)
+                .foregroundStyle(enabled ? AnyShapeStyle(Brand.accentText(scheme)) : AnyShapeStyle(.secondary))
                 .lineLimit(1)
                 .padding(.bottom, 6)
             footer()

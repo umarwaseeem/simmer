@@ -4,6 +4,7 @@ import SimmerShared
 struct USBPage: View {
     @State private var snapshot: USBSnapshot?
     @State private var updated: Date?
+    @State private var reading = false
     private let autoLoad: Bool
 
     init(initial: USBSnapshot? = nil, autoLoad: Bool = true) {
@@ -37,9 +38,7 @@ struct USBPage: View {
                         }
                     }
                 } header: {
-                    RefreshHeader(title: "Power Out of Your Mac", topic: .usbPower, updated: updated, busy: false) {
-                        Task { await read() }
-                    }
+                    HelpLabel("Power Out of Your Mac", .usbPower)
                 } footer: {
                     SectionCaption("Live power the Mac sends to devices on its USB-C ports, measured by the power controller. A hub on one port counts as one.")
                 }
@@ -63,6 +62,7 @@ struct USBPage: View {
             }
         }
         .formStyle(.grouped)
+        .pageRefresh(busy: reading, updated: updated, note: "checks every 3 s") { Task { await read() } }
         .task {
             while autoLoad && !Task.isCancelled {
                 await read()
@@ -72,9 +72,12 @@ struct USBPage: View {
     }
 
     private func read() async {
+        guard !reading else { return }
+        reading = true
         let s = await Task.detached(priority: .utility) { USBSnapshot.read() }.value
         if s != snapshot { snapshot = s }
         updated = Date()
+        reading = false
     }
 }
 
