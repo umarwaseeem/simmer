@@ -15,6 +15,38 @@
     <language>en</language>
     <!-- RELEASES: scripts/release.sh inserts new items below this line (newest first). -->
     <item>
+      <title>Simmer 1.1.0</title>
+      <pubDate>Wed, 11 Nov 2026 18:21:38 +0000</pubDate>
+      <link>https://github.com/umarwaseeem/simmer/releases/tag/v1.1.0</link>
+      <sparkle:version>3</sparkle:version>
+      <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h3>New</h3>
+        <ul>
+        <li><b>Stove knob and glowing battery</b> in the menu bar panel. Turn the knob to set the limit (drag, scroll,</li>
+        </ul>
+        <p>  arrow keys or VoiceOver); the jar shows the live charge, steams while charging and glows green at the</p>
+        <p>  limit. Prefer the classic slider? Settings → Menu Bar Panel → Look.</p>
+        <ul>
+        <li><b>Time to limit:</b> "80% in 25 min" while charging or discharging toward the limit (also in <code>simmerctl status</code>).</li>
+        <li><b>Ready for macOS 27:</b> if macOS blocks direct charge control, Simmer switches to the macOS Charge Limit</li>
+        </ul>
+        <p>  automatically (80–100% in steps). Settings → Charging → Charge control, or <code>simmerctl set charge-control</code>.</p>
+        <ul>
+        <li><b>Power flow in the panel by default</b>, with one plain sentence about what is happening right now.</li>
+        <li><b>Close power-hungry apps and processes</b> from Settings → Energy (Quit, End, and Force options).</li>
+        <li><b>Refresh buttons (⌘R)</b> on all insight pages, with "updated … ago".</li>
+        </ul>
+        <h3>Changed</h3>
+        <ul>
+        <li>The menu bar panel uses Simmer's warm plum and ember colours.</li>
+        <li>New Simmer jar icon in the menu bar (the battery symbol is still an option).</li>
+        </ul>
+      ]]></description>
+      <enclosure url="https://github.com/umarwaseeem/simmer/releases/download/v1.1.0/Simmer-1.1.0.zip" type="application/octet-stream" sparkle:edSignature="43jRQgRFsV52JIN2OR1BAv4o88TgVxcqrhvQONj7/+GJnpnvhvLzkIstkV/6bvXQMQhFSvzmMTqriLLt8YtlBA==" length="9838162" />
+    </item>
+    <item>
       <title>Simmer 1.0.0</title>
       <pubDate>Wed, 11 Nov 2026 15:17:01 +0000</pubDate>
       <link>https://github.com/umarwaseeem/simmer/releases/tag/v1.0.0</link>

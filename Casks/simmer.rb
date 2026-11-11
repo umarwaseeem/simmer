@@ -2,8 +2,8 @@
 # `version` and `sha256`. Install it by tapping this repository directly:
 #   brew tap umarwaseeem/simmer https://github.com/umarwaseeem/simmer && brew install --cask simmer
 cask "simmer" do
-  version "1.0.0"
-  sha256 "3ef073e89130a9139a93b62b0431e203069560baf428b18ce498a9b3152d00fa"
+  version "1.1.0"
+  sha256 "56969e38749f98b841300f7a3d8ec6f2994c53bed90b3c6d81d941d19e605a16"
 
   url "https://github.com/umarwaseeem/simmer/releases/download/v#{version}/Simmer-#{version}.dmg"
   name "Simmer"
