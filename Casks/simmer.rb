@@ -1,5 +1,5 @@
 # Homebrew cask for Simmer. The canonical copy lives in this repo; scripts/release.sh fills in
-# `version` and `sha256`, and the release is mirrored to the tap:
+# `version` and `sha256`. Install it by tapping this repository directly:
 #   brew tap umarwaseeem/simmer https://github.com/umarwaseeem/simmer && brew install --cask simmer
 cask "simmer" do
   version "1.0.0"
